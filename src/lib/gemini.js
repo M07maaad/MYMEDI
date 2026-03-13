@@ -1,129 +1,103 @@
-// ─── Gemini Vision API — Fixed Version ───────────────────────
-// المشكلة الأساسية: الـ API key بيتبعت في الـ URL مش في الـ headers
-// والـ model name لازم يكون صح
+// ─── Gemini API ───────────────────────────────────────────────
+// gemini-2.0-flash-lite — الأسرع في الـ free tier
 
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
+const MODEL = 'gemini-2.0-flash-lite'
+const BASE  = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-export async function recognizeDrugFromImage(imageBase64, mimeType = 'image/jpeg') {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+function getUrl() {
+  const key = import.meta.env.VITE_GEMINI_API_KEY
+  if (!key) throw new Error('VITE_GEMINI_API_KEY غير موجود في ملف .env')
+  return `${BASE}/${MODEL}:generateContent?key=${key}`
+}
 
-  if (!apiKey) {
-    throw new Error('Gemini API key غير موجود — تأكد من ملف .env')
-  }
-
-  const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+async function callGemini(parts, maxTokens = 400) {
+  const res = await fetch(getUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          {
-            text: `You are a pharmacy expert. Look at this medication image carefully.
-Extract the following information and respond ONLY with valid JSON, no markdown, no explanation:
+      contents: [{ parts }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Gemini API error')
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error('لم يرد الـ AI بأي نتيجة')
+  return text
+}
+
+function parseJSON(raw) {
+  return JSON.parse(raw.replace(/```json\s*|\s*```/g, '').trim())
+}
+
+export async function recognizeDrugFromImage(imageBase64, mimeType = 'image/jpeg') {
+  const text = await callGemini([
+    {
+      text: `You are an expert pharmacist. Analyze this medication image.
+Respond ONLY with valid JSON (no markdown, no extra text):
 {
-  "generic_name": "the scientific/generic drug name in English",
-  "trade_name": "the brand/trade name shown on the box",
-  "dose": "the strength like 500mg or 10mg",
-  "dosage_form": "tablet or capsule or syrup or injection",
+  "generic_name": "scientific name in English",
+  "trade_name": "brand name on box",
+  "dose": "strength e.g. 500mg",
+  "dosage_form": "tablet|capsule|syrup|injection|cream|drops|inhaler|patch|suppository|other",
   "schedule_suggestion": {
-    "times_per_day": 1,
     "suggested_times": ["صبح"],
     "with_food": true,
-    "notes": "any important timing notes in Arabic"
+    "notes": "سبب التوقيت"
   },
   "confidence": 0.9
 }
-If you cannot read the medication clearly, set confidence to 0.1 and fill what you can see.`
-          },
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: imageBase64
-            }
-          }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 500,
-      }
-    })
-  })
+Use only these values for suggested_times: صبح / ظهر / مساء / ليل
+If image is unclear, set confidence 0.1 and fill what you can.`
+    },
+    { inline_data: { mime_type: mimeType, data: imageBase64 } }
+  ], 500)
 
-  if (!response.ok) {
-    const errorData = await response.json()
-    console.error('Gemini API Error:', errorData)
-    throw new Error(`Gemini Error: ${errorData.error?.message || 'Unknown error'}`)
-  }
-
-  const data = await response.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-  if (!text) throw new Error('لم يرد الـ AI بأي نتيجة')
-
-  try {
-    // Remove any markdown code blocks if present
-    const clean = text.replace(/```json\n?|\n?```/g, '').trim()
-    return JSON.parse(clean)
-  } catch {
-    throw new Error('تعذر قراءة رد الـ AI')
-  }
+  try { return parseJSON(text) }
+  catch { throw new Error('تعذر قراءة رد الـ AI — حاول مرة أخرى') }
 }
 
-// ─── AI Schedule Suggestion ───────────────────────────────────
-// بتبعت اسم الدواء والـ AI يرد بالمواعيد المناسبة
 export async function suggestDrugSchedule(genericName, tradeName, dose) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-  if (!apiKey) throw new Error('Gemini API key غير موجود')
-
-  const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `You are a clinical pharmacist. For this medication:
-Drug: ${genericName} (${tradeName || ''}) ${dose || ''}
-
-Provide the standard dosing schedule. Respond ONLY with this JSON, no markdown:
+  const text = await callGemini([{
+    text: `Clinical pharmacist. Medication: ${genericName} (${tradeName || ''}) ${dose || ''}
+Respond ONLY with JSON (no markdown):
 {
   "suggested_times": ["صبح"],
   "with_food": true,
-  "reasoning": "سبب التوقيت بالعربي في جملة واحدة قصيرة",
-  "warning": "أي تحذير مهم بالعربي أو null"
+  "reasoning": "سبب قصير بالعربي",
+  "warning": null
+}
+suggested_times options: صبح / ظهر / مساء / ليل only.`
+  }], 250)
+
+  try { return parseJSON(text) }
+  catch { return { suggested_times: ['صبح'], with_food: true, reasoning: 'الجرعة اليومية الصباحية', warning: null } }
 }
 
-Rules for suggested_times: use only values from ["صبح", "ظهر", "مساء", "ليل"]
-Examples:
-- Once daily morning drug → ["صبح"]  
-- Twice daily → ["صبح", "ليل"]
-- Three times daily → ["صبح", "ظهر", "ليل"]
-- With meals → with_food: true`
-        }]
-      }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
-    })
-  })
+export async function analyzeLabImage(imageBase64, mimeType = 'image/jpeg') {
+  const text = await callGemini([
+    {
+      text: `You are a medical expert. Analyze this medical document (lab result or X-ray report).
+Respond ONLY with JSON (no markdown):
+{
+  "type": "lab|xray",
+  "findings": ["finding 1 in Arabic", "finding 2"],
+  "summary": "ملخص النتيجة بالعربي",
+  "is_abnormal": false,
+  "recommendations": "توصية طبية أو null"
+}`
+    },
+    { inline_data: { mime_type: mimeType, data: imageBase64 } }
+  ], 400)
 
-  if (!response.ok) throw new Error('فشل الاتصال بالـ AI')
-
-  const data = await response.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error('لم يرد الـ AI')
-
-  try {
-    return JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim())
-  } catch {
-    // Default fallback
-    return { suggested_times: ['صبح'], with_food: true, reasoning: 'مرة يومياً الصبح', warning: null }
-  }
+  try { return parseJSON(text) }
+  catch { return { type: 'lab', findings: [], summary: 'تعذر تحليل الصورة', is_abnormal: false, recommendations: null } }
 }
 
-// ─── Convert file to base64 ───────────────────────────────────
 export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(reader.result.split(',')[1])
+    reader.onload  = () => resolve(reader.result.split(',')[1])
     reader.onerror = () => reject(new Error('فشل قراءة الملف'))
     reader.readAsDataURL(file)
   })
