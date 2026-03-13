@@ -1,7 +1,7 @@
 // ─── Gemini API — gemini-2.5-flash-lite (Free Tier 2026) ──────
 // 1,000 requests/day | 15 req/min | مجاني 100%
 
-const MODEL = 'gemini-2.5-flash-lite-preview-06-17'
+const MODEL = 'gemini-2.0-flash-exp'
 const BASE  = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 function getUrl() {
