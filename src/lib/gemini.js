@@ -2,7 +2,7 @@
 // الموديل: google/gemini-2.0-flash-exp:free
 // مجاني 100% على openrouter.ai
 
-const MODEL = 'google/gemini-2.0-flash-exp:free'
+const MODEL = 'openrouter/free'
 const URL   = 'https://openrouter.ai/api/v1/chat/completions'
 
 function getKey() {
