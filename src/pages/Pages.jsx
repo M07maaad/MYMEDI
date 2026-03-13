@@ -166,7 +166,7 @@ export function InteractionsPage() {
 // ─── LabsPage — تحاليل + أشعة ────────────────────────────────
 import { useRef as useRef2, useState as useState2 } from 'react'
 import { useLabResults } from '../hooks/useLabResults'
-import { analyzeLabImage, fileToBase64 } from '../lib/gemini'
+import { fileToBase64 } from '../lib/gemini'
 
 export function LabsPage() {
   const { labs, loading, addLabResult } = useLabResults()
@@ -198,7 +198,21 @@ export function LabsPage() {
     setFile(f); setScanning(true)
     try {
       const base64 = await fileToBase64(f)
-      const result = await analyzeLabImage(base64, f.type)
+      const key = import.meta.env.VITE_GEMINI_API_KEY
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { text: `Analyze this medical document (lab result or X-ray). Respond ONLY with JSON:\n{"type":"lab","findings":[],"summary":"ملخص بالعربي","is_abnormal":false,"recommendations":null}` },
+            { inline_data: { mime_type: f.type, data: base64 } }
+          ]}],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 400 }
+        })
+      })
+      const aiData = await res.json()
+      const text = aiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const result = JSON.parse(text.replace(/```json\s*|\s*```/g, '').trim())
       setAiSummary(result)
       setForm(p => ({
         ...p,
