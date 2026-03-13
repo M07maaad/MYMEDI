@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMedications } from '../hooks/useMedications'
-import { AddMedPage, ProfilePage } from './pages/AddMedPage_ProfilePage'
 import { recognizeDrugFromImage, fileToBase64 } from '../lib/gemini'
 import { Card, Button, Input } from '../components/UI'
 
