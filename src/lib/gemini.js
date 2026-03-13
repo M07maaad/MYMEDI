@@ -1,135 +1,123 @@
-// ─── Gemini API — gemini-2.5-flash-lite (Free Tier 2026) ──────
-// 1,000 requests/day | 15 req/min | مجاني 100%
+// ─── OpenRouter API — بديل Gemini مجاني ──────────────────────
+// الموديل: google/gemini-2.0-flash-exp:free
+// مجاني 100% على openrouter.ai
 
-const MODEL = 'gemini-2.0-flash-exp'
-const BASE  = 'https://generativelanguage.googleapis.com/v1beta/models'
+const MODEL = 'google/gemini-2.0-flash-exp:free'
+const URL   = 'https://openrouter.ai/api/v1/chat/completions'
 
-function getUrl() {
-  const key = import.meta.env.VITE_GEMINI_API_KEY
-  if (!key) throw new Error('VITE_GEMINI_API_KEY غير موجود في ملف .env')
-  return `${BASE}/${MODEL}:generateContent?key=${key}`
+function getKey() {
+  const key = import.meta.env.VITE_OPENROUTER_API_KEY
+  if (!key) throw new Error('VITE_OPENROUTER_API_KEY غير موجود في .env')
+  return key
 }
 
-async function callGemini(parts, maxTokens = 400) {
-  const res = await fetch(getUrl(), {
+async function callAI(messages, maxTokens = 500) {
+  const res = await fetch(URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
-    }),
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${getKey()}`,
+      'HTTP-Referer':  'https://mediguard.vercel.app',
+      'X-Title':       'MediGuard',
+    },
+    body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens }),
   })
+
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error?.message || 'Gemini API error')
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error('لم يرد الـ AI بأي نتيجة')
+  if (!res.ok) throw new Error(data.error?.message || 'OpenRouter API error')
+  const text = data.choices?.[0]?.message?.content
+  if (!text) throw new Error('لم يرد الـ AI')
   return text
 }
 
 function parseJSON(raw) {
-  // Remove markdown code blocks if present
   const clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
-  // Find first { to last }
   const start = clean.indexOf('{')
   const end   = clean.lastIndexOf('}')
-  if (start === -1 || end === -1) throw new Error('No JSON found')
+  if (start === -1 || end === -1) throw new Error('No JSON in response')
   return JSON.parse(clean.slice(start, end + 1))
 }
 
 // ─── تعرف على الدواء من صورة ─────────────────────────────────
 export async function recognizeDrugFromImage(imageBase64, mimeType = 'image/jpeg') {
-  const text = await callGemini([
-    {
-      text: `You are an expert pharmacist. Analyze this medication image carefully.
-Respond ONLY with this exact JSON structure, no other text:
+  const text = await callAI([{
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: `You are an expert pharmacist. Analyze this medication image.
+Respond ONLY with this JSON, no other text:
 {
   "generic_name": "scientific name in English",
-  "trade_name": "brand name visible on packaging",
-  "dose": "strength like 500mg or 10mg/5ml",
-  "dosage_form": "tablet or capsule or syrup or injection or cream or drops or inhaler or suppository or other",
+  "trade_name": "brand name on box",
+  "dose": "strength e.g. 500mg",
+  "dosage_form": "tablet|capsule|syrup|injection|cream|drops|inhaler|suppository|other",
   "schedule_suggestion": {
     "suggested_times": ["صبح"],
     "with_food": true,
-    "notes": "brief reason in Arabic"
+    "notes": "سبب التوقيت"
   },
   "confidence": 0.9
 }
-For suggested_times use ONLY: صبح / ظهر / مساء / ليل
-If unclear, set confidence to 0.2 and fill what you can see.`
-    },
-    { inline_data: { mime_type: mimeType, data: imageBase64 } }
-  ], 600)
+suggested_times values: صبح / ظهر / مساء / ليل only.
+If unclear set confidence 0.2.`
+      },
+      {
+        type: 'image_url',
+        image_url: { url: `data:${mimeType};base64,${imageBase64}` }
+      }
+    ]
+  }], 600)
 
-  try {
-    return parseJSON(text)
-  } catch {
-    throw new Error('تعذر قراءة الصورة — تأكد إن الصورة واضحة وتظهر العلبة كاملة')
-  }
+  try { return parseJSON(text) }
+  catch { throw new Error('تعذر قراءة الصورة — تأكد إن الصورة واضحة') }
 }
 
-// ─── اقتراح مواعيد الدواء بالـ AI ────────────────────────────
+// ─── اقتراح مواعيد الدواء ────────────────────────────────────
 export async function suggestDrugSchedule(genericName, tradeName, dose) {
-  const text = await callGemini([{
-    text: `You are a clinical pharmacist. For this medication: ${genericName} (${tradeName || ''}) ${dose || ''}
-
-What is the standard dosing schedule? Respond ONLY with this JSON, no other text:
+  const text = await callAI([{
+    role: 'user',
+    content: `Clinical pharmacist. Medication: ${genericName} (${tradeName || ''}) ${dose || ''}
+Respond ONLY with this JSON, no other text:
 {
   "suggested_times": ["صبح"],
   "with_food": true,
-  "reasoning": "سبب التوقيت بالعربي — جملة واحدة بسيطة",
+  "reasoning": "سبب قصير بالعربي",
   "warning": null
 }
+suggested_times: صبح/ظهر/مساء/ليل only. QD=["صبح"] BID=["صبح","ليل"] TID=["صبح","ظهر","ليل"]`
+  }], 250)
 
-Rules:
-- suggested_times: use ONLY values from ["صبح", "ظهر", "مساء", "ليل"]
-- Once daily (QD) → ["صبح"]
-- Twice daily (BID) → ["صبح", "ليل"]  
-- Three times daily (TID) → ["صبح", "ظهر", "ليل"]
-- Four times daily (QID) → ["صبح", "ظهر", "مساء", "ليل"]
-- warning: important drug-specific warning in Arabic, or null`
-  }], 300)
-
-  try {
-    return parseJSON(text)
-  } catch {
-    return {
-      suggested_times: ['صبح'],
-      with_food: true,
-      reasoning: 'جرعة يومية صباحية',
-      warning: null
-    }
-  }
+  try { return parseJSON(text) }
+  catch { return { suggested_times: ['صبح'], with_food: true, reasoning: 'جرعة يومية صباحية', warning: null } }
 }
 
 // ─── تحليل صورة تحليل/أشعة ───────────────────────────────────
 export async function analyzeLabImage(imageBase64, mimeType = 'image/jpeg') {
-  const text = await callGemini([
-    {
-      text: `You are a medical expert. Analyze this medical document image (lab result or X-ray or scan report).
-Respond ONLY with this JSON, no other text:
+  const text = await callAI([{
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: `Medical expert. Analyze this medical document (lab result or X-ray).
+Respond ONLY with this JSON:
 {
   "type": "lab",
-  "findings": ["finding in Arabic", "finding 2"],
-  "summary": "ملخص النتيجة بالعربي في جملتين",
+  "findings": ["finding in Arabic"],
+  "summary": "ملخص بالعربي",
   "is_abnormal": false,
-  "recommendations": "توصية مختصرة بالعربي أو null"
-}
-For type: use "lab" for blood/urine tests, "xray" for radiology reports.`
-    },
-    { inline_data: { mime_type: mimeType, data: imageBase64 } }
-  ], 500)
+  "recommendations": "توصية أو null"
+}`
+      },
+      {
+        type: 'image_url',
+        image_url: { url: `data:${mimeType};base64,${imageBase64}` }
+      }
+    ]
+  }], 400)
 
-  try {
-    return parseJSON(text)
-  } catch {
-    return {
-      type: 'lab',
-      findings: [],
-      summary: 'تعذر تحليل الصورة — حاول مرة أخرى',
-      is_abnormal: false,
-      recommendations: null
-    }
-  }
+  try { return parseJSON(text) }
+  catch { return { type: 'lab', findings: [], summary: 'تعذر التحليل', is_abnormal: false, recommendations: null } }
 }
 
 // ─── تحويل ملف لـ base64 ─────────────────────────────────────
