@@ -1,35 +1,27 @@
-// ================================================================
-// ملف واحد فيه:
-// 1. AddMedPage المحدّث — بحث في قاعدة البيانات + AI Schedule
-// 2. ProfilePage المحدّث — زرار تعديل البيانات
-// ================================================================
-
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
 import { useMedications } from '../hooks/useMedications'
 import { recognizeDrugFromImage, suggestDrugSchedule, fileToBase64 } from '../lib/gemini'
 
-// ─── Shared styles ────────────────────────────────────────────
 const S = {
-  page:    { padding: '24px 20px 100px', direction: 'rtl', fontFamily: 'Cairo, sans-serif', minHeight: '100vh', background: '#070B14' },
-  title:   { color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 8px' },
-  sub:     { color: '#6B7A99', fontSize: 14, margin: '0 0 28px' },
-  label:   { color: '#9BA8BF', fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 8 },
-  input:   { width: '100%', background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '13px 16px', color: '#F0F4FF', fontSize: 15, fontFamily: 'Cairo, sans-serif', outline: 'none', boxSizing: 'border-box' },
-  card:    { background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20 },
-  btn:     { width: '100%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 14, padding: '14px 0', color: '#000', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' },
-  btnSec:  { width: '100%', background: 'rgba(16,217,160,0.1)', border: '1px solid rgba(16,217,160,0.3)', borderRadius: 14, padding: '13px 0', color: '#10D9A0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' },
-  back:    { background: 'none', border: 'none', color: '#6B7A99', fontSize: 14, cursor: 'pointer', marginBottom: 20, fontFamily: 'Cairo, sans-serif', padding: 0 },
+  page:   { padding: '24px 20px 100px', direction: 'rtl', fontFamily: 'Cairo, sans-serif', minHeight: '100vh', background: '#070B14' },
+  title:  { color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 8px' },
+  sub:    { color: '#6B7A99', fontSize: 14, margin: '0 0 28px' },
+  label:  { color: '#9BA8BF', fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 8 },
+  input:  { width: '100%', background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '13px 16px', color: '#F0F4FF', fontSize: 15, fontFamily: 'Cairo, sans-serif', outline: 'none', boxSizing: 'border-box' },
+  card:   { background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20 },
+  btn:    { width: '100%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 14, padding: '14px 0', color: '#000', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' },
+  btnSec: { width: '100%', background: 'rgba(16,217,160,0.1)', border: '1px solid rgba(16,217,160,0.3)', borderRadius: 14, padding: '13px 0', color: '#10D9A0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' },
+  back:   { background: 'none', border: 'none', color: '#6B7A99', fontSize: 14, cursor: 'pointer', marginBottom: 20, fontFamily: 'Cairo, sans-serif', padding: 0 },
 }
 
 const PERIODS = ['صبح', 'ظهر', 'مساء', 'ليل']
 const COLORS  = ['#10D9A0', '#FF6B6B', '#38BDF8', '#FBBF24', '#A78BFA', '#F97316']
 
-// ─── Drug Search Component ────────────────────────────────────
+// ─── Drug Search ──────────────────────────────────────────────
 function DrugSearch({ onSelect }) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery]     = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const timer = useRef(null)
@@ -65,13 +57,16 @@ function DrugSearch({ onSelect }) {
       {results.length > 0 && (
         <div style={{ background: '#0D1321', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, marginTop: 6, maxHeight: 220, overflowY: 'auto' }}>
           {results.map((drug, i) => (
-            <div key={drug.id} onClick={() => { onSelect(drug); setQuery(''); setResults([]) }}
+            <div
+              key={drug.id}
+              onClick={() => { onSelect(drug); setQuery(''); setResults([]) }}
               style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i < results.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,217,160,0.08)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
               <div>
-                <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 14 }}>{drug.trade_name}</div>
-                <div style={{ color: '#6B7A99', fontSize: 12 }}>{drug.generic_name} {drug.dose && `— ${drug.dose}`}</div>
+                <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 14 }}>{drug.tradename}</div>
+                <div style={{ color: '#6B7A99', fontSize: 12 }}>{drug.activeingredient}</div>
               </div>
               {drug.company && <div style={{ color: '#6B7A99', fontSize: 11 }}>{drug.company}</div>}
             </div>
@@ -106,28 +101,26 @@ function AIScheduleBadge({ suggestion, onApply }) {
         </span>
       </div>
       {suggestion.reasoning && <p style={{ color: '#9BA8BF', fontSize: 12, margin: '0 0 10px', lineHeight: 1.6 }}>💡 {suggestion.reasoning}</p>}
-      {suggestion.warning && <p style={{ color: '#FF6B6B', fontSize: 12, margin: '0 0 10px' }}>⚠️ {suggestion.warning}</p>}
+      {suggestion.warning   && <p style={{ color: '#FF6B6B',  fontSize: 12, margin: '0 0 10px' }}>⚠️ {suggestion.warning}</p>}
       <button onClick={onApply} style={{ ...S.btnSec, padding: '9px 0', fontSize: 13 }}>تطبيق الاقتراح ✓</button>
     </div>
   )
 }
 
-// ================================================================
-// AddMedPage
-// ================================================================
-export function AddMedPage() {
+// ─── AddMedPage ───────────────────────────────────────────────
+export default function AddMedPage() {
   const navigate = useNavigate()
   const { addMedication } = useMedications()
   const fileRef = useRef()
 
-  const [step, setStep] = useState(1)          // 1=mode, 2=camera, 3=form
-  const [mode, setMode] = useState(null)
-  const [scanning, setScanning] = useState(false)
-  const [aiResult, setAiResult] = useState(null)
-  const [aiSchedule, setAiSchedule] = useState(null)
+  const [step,            setStep]            = useState(1)
+  const [mode,            setMode]            = useState(null)
+  const [scanning,        setScanning]        = useState(false)
+  const [aiResult,        setAiResult]        = useState(null)
+  const [aiSchedule,      setAiSchedule]      = useState(null)
   const [loadingSchedule, setLoadingSchedule] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [saving,          setSaving]          = useState(false)
+  const [error,           setError]           = useState('')
 
   const [form, setForm] = useState({
     generic_name: '', trade_name: '', dose: '',
@@ -135,23 +128,21 @@ export function AddMedPage() {
     stock_count: 30, color: COLORS[0],
   })
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
+  const update       = (k, v) => setForm(p => ({ ...p, [k]: v }))
   const togglePeriod = p => update('dose_times',
     form.dose_times.includes(p) ? form.dose_times.filter(x => x !== p) : [...form.dose_times, p]
   )
 
-  // لما يختار دواء من قاعدة البيانات
   async function handleDrugSelect(drug) {
     setForm(p => ({
       ...p,
-      generic_name: drug.generic_name,
-      trade_name: drug.trade_name,
-      dose: drug.dose || '',
+      generic_name: drug.activeingredient || '',
+      trade_name:   drug.tradename        || '',
+      dose:         '',
     }))
-    await fetchAISchedule(drug.generic_name, drug.trade_name, drug.dose)
+    await fetchAISchedule(drug.activeingredient, drug.tradename, '')
   }
 
-  // طلب جدول من الـ AI
   async function fetchAISchedule(generic, trade, dose) {
     setLoadingSchedule(true)
     try {
@@ -164,14 +155,12 @@ export function AddMedPage() {
     }
   }
 
-  // تطبيق اقتراح الـ AI
   function applyAISchedule() {
     if (!aiSchedule) return
     update('dose_times', aiSchedule.suggested_times)
-    update('with_food', aiSchedule.with_food)
+    update('with_food',  aiSchedule.with_food)
   }
 
-  // التعرف على الدواء من الصورة
   async function handleImagePick(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -180,15 +169,12 @@ export function AddMedPage() {
       const base64 = await fileToBase64(file)
       const result = await recognizeDrugFromImage(base64, file.type)
       setAiResult(result)
-      const newForm = {
-        ...form,
+      setForm(p => ({
+        ...p,
         generic_name: result.generic_name || '',
         trade_name:   result.trade_name   || '',
         dose:         result.dose         || '',
-      }
-      setForm(newForm)
-
-      // لو الـ AI رجّع اقتراح مواعيد من الصورة
+      }))
       if (result.schedule_suggestion) {
         setAiSchedule({
           suggested_times: result.schedule_suggestion.suggested_times || ['صبح'],
@@ -224,7 +210,7 @@ export function AddMedPage() {
     }
   }
 
-  // Step 1: اختيار الطريقة
+  // ── Step 1: اختيار الطريقة ────────────────────────────────
   if (step === 1) return (
     <div style={S.page}>
       <button onClick={() => navigate('/medications')} style={S.back}>← رجوع</button>
@@ -256,7 +242,7 @@ export function AddMedPage() {
     </div>
   )
 
-  // Step 2: كاميرا
+  // ── Step 2: كاميرا ────────────────────────────────────────
   if (step === 2) return (
     <div style={S.page}>
       <button onClick={() => setStep(1)} style={S.back}>← رجوع</button>
@@ -281,11 +267,15 @@ export function AddMedPage() {
         )}
       </div>
 
-      {error && <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 12, padding: '12px 16px', color: '#FF6B6B', fontSize: 13 }}>{error}</div>}
+      {error && (
+        <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 12, padding: '12px 16px', color: '#FF6B6B', fontSize: 13 }}>
+          {error}
+        </div>
+      )}
     </div>
   )
 
-  // Step 3: الفورم
+  // ── Step 3: الفورم ────────────────────────────────────────
   return (
     <div style={S.page}>
       <button onClick={() => setStep(mode === 'camera' ? 2 : 1)} style={S.back}>← رجوع</button>
@@ -301,10 +291,8 @@ export function AddMedPage() {
         </div>
       )}
 
-      {/* Drug Search */}
       <DrugSearch onSelect={handleDrugSelect} />
 
-      {/* AI Schedule Suggestion */}
       {loadingSchedule ? (
         <div style={{ textAlign: 'center', padding: '12px 0', color: '#10D9A0', fontSize: 13 }}>
           🤖 الـ AI بيحدد المواعيد المناسبة...
@@ -313,7 +301,6 @@ export function AddMedPage() {
         <AIScheduleBadge suggestion={aiSchedule} onApply={applyAISchedule} />
       )}
 
-      {/* Manual Form */}
       <div style={{ marginBottom: 16 }}>
         <label style={S.label}>الاسم العلمي *</label>
         <input placeholder="مثال: Metformin" value={form.generic_name}
@@ -335,7 +322,6 @@ export function AddMedPage() {
           onChange={e => update('stock_count', parseInt(e.target.value) || 0)} style={S.input} />
       </div>
 
-      {/* Dose Times */}
       <div style={{ marginBottom: 16 }}>
         <label style={S.label}>مواعيد الجرعة *</label>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -354,7 +340,6 @@ export function AddMedPage() {
         </div>
       </div>
 
-      {/* With Food */}
       <div style={{ marginBottom: 16 }}>
         <label style={S.label}>وقت الأخذ</label>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -370,7 +355,6 @@ export function AddMedPage() {
         </div>
       </div>
 
-      {/* Color */}
       <div style={{ marginBottom: 28 }}>
         <label style={S.label}>لون مميز للدواء</label>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -384,162 +368,14 @@ export function AddMedPage() {
         </div>
       </div>
 
-      {error && <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 12, padding: '12px 16px', color: '#FF6B6B', fontSize: 13, marginBottom: 16 }}>{error}</div>}
-      <button onClick={handleSave} disabled={saving} style={S.btn}>
-        {saving ? 'جاري الحفظ...' : 'حفظ الدواء ✓'}
-      </button>
-    </div>
-  )
-}
-
-// ================================================================
-// ProfilePage — مع زرار التعديل
-// ================================================================
-export function ProfilePage() {
-  const { profile, signOut, updateProfile } = useAuth()
-  const { medications } = useMedications()
-  const [editing, setEditing] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [form, setForm] = useState({
-    full_name:  profile?.full_name  || '',
-    age:        profile?.age        || '',
-    weight:     profile?.weight     || '',
-    height:     profile?.height     || '',
-    blood_type: profile?.blood_type || '',
-  })
-
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
-
-  async function handleSave() {
-    setSaving(true); setError('')
-    try {
-      await updateProfile({
-        full_name:  form.full_name,
-        age:        form.age        ? parseInt(form.age)        : null,
-        weight:     form.weight     ? parseFloat(form.weight)   : null,
-        height:     form.height     ? parseFloat(form.height)   : null,
-        blood_type: form.blood_type || null,
-      })
-      setEditing(false)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div style={S.page}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
-          👤
+      {error && (
+        <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 12, padding: '12px 16px', color: '#FF6B6B', fontSize: 13, marginBottom: 16 }}>
+          {error}
         </div>
-        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>
-          {profile?.full_name || 'المستخدم'}
-        </h1>
-        <span style={{ background: 'rgba(16,217,160,0.12)', color: '#10D9A0', borderRadius: 8, padding: '4px 14px', fontSize: 12, fontWeight: 700 }}>
-          {profile?.role === 'pharmacist' ? '👨‍⚕️ صيدلاني' : '🧑 مريض'}
-        </span>
-      </div>
-
-      {/* Edit / View Mode */}
-      {editing ? (
-        <div style={{ ...S.card, marginBottom: 20 }}>
-          <div style={{ color: '#10D9A0', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>✏️ تعديل البيانات</div>
-
-          {[
-            ['full_name',  'الاسم الكامل',   'text',   'أحمد محمد'],
-            ['age',        'العمر',           'number', '25'],
-            ['weight',     'الوزن (كجم)',     'number', '70'],
-            ['height',     'الطول (سم)',      'number', '175'],
-          ].map(([key, label, type, placeholder]) => (
-            <div key={key} style={{ marginBottom: 14 }}>
-              <label style={{ ...S.label, fontSize: 12 }}>{label}</label>
-              <input
-                type={type}
-                placeholder={placeholder}
-                value={form[key]}
-                onChange={e => update(key, e.target.value)}
-                style={{ ...S.input, padding: '11px 14px', fontSize: 14 }}
-              />
-            </div>
-          ))}
-
-          {/* Blood Type */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ ...S.label, fontSize: 12 }}>فصيلة الدم</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bt => (
-                <button key={bt} onClick={() => update('blood_type', bt)} style={{
-                  background: form.blood_type === bt ? 'rgba(255,107,107,0.2)' : '#111827',
-                  border: `1px solid ${form.blood_type === bt ? '#FF6B6B' : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: 8, padding: '7px 12px',
-                  color: form.blood_type === bt ? '#FF6B6B' : '#6B7A99',
-                  fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
-                }}>{bt}</button>
-              ))}
-            </div>
-          </div>
-
-          {error && <div style={{ color: '#FF6B6B', fontSize: 13, marginBottom: 12 }}>{error}</div>}
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={handleSave} disabled={saving} style={{ ...S.btn, flex: 2 }}>
-              {saving ? 'جاري الحفظ...' : 'حفظ التغييرات ✓'}
-            </button>
-            <button onClick={() => { setEditing(false); setError('') }} style={{ ...S.btnSec, flex: 1 }}>
-              إلغاء
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Stats Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-            {[
-              ['العمر',    profile?.age,        'سنة'],
-              ['الوزن',    profile?.weight,      'كجم'],
-              ['الطول',    profile?.height,      'سم'],
-              ['الفصيلة',  profile?.blood_type,  ''],
-            ].map(([label, value, unit]) => (
-              <div key={label} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
-                <div style={{ color: value ? '#10D9A0' : '#6B7A99', fontSize: 18, fontWeight: 800 }}>{value || '—'}</div>
-                {unit && <div style={{ color: '#6B7A99', fontSize: 10 }}>{unit}</div>}
-                <div style={{ color: '#9BA8BF', fontSize: 11, marginTop: 2 }}>{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Edit Button */}
-          <button onClick={() => setEditing(true)} style={{ ...S.btnSec, marginBottom: 16 }}>
-            ✏️ تعديل البيانات الشخصية
-          </button>
-        </>
       )}
 
-      {/* Medications Count */}
-      <div style={{ ...S.card, marginBottom: 16 }}>
-        <div style={{ color: '#9BA8BF', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💊 الأدوية النشطة</div>
-        <div style={{ color: '#F0F4FF', fontSize: 28, fontWeight: 800 }}>
-          {medications.length} <span style={{ color: '#6B7A99', fontSize: 14, fontWeight: 400 }}>دواء</span>
-        </div>
-      </div>
-
-      {/* QR */}
-      <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 20 }}>
-        <div style={{ fontSize: 48, marginBottom: 10 }}>📱</div>
-        <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 16, marginBottom: 6 }}>QR التاريخ الطبي</div>
-        <p style={{ color: '#6B7A99', fontSize: 13, marginBottom: 16 }}>اعرضه للدكتور ليشوف تاريخك الطبي كامل فوراً</p>
-        <button style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 12, padding: '11px 28px', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
-          عرض QR Code
-        </button>
-      </div>
-
-      {/* Sign Out */}
-      <button onClick={signOut} style={{ width: '100%', background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: 14, padding: '14px 0', color: '#FF6B6B', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
-        تسجيل الخروج
+      <button onClick={handleSave} disabled={saving} style={S.btn}>
+        {saving ? 'جاري الحفظ...' : 'حفظ الدواء ✓'}
       </button>
     </div>
   )
