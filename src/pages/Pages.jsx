@@ -241,65 +241,6 @@ export function LabsPage() {
 }
 
 // ─── ProfilePage ──────────────────────────────────────────────
-import { useAuth } from '../hooks/useAuth'
-import { useMedications as useMeds4 } from '../hooks/useMedications'
-import { useState as useState3 } from 'react'
-
-export function ProfilePage() {
-  const { profile, signOut, updateProfile } = useAuth()
-  const { medications } = useMeds4()
-  const [editing, setEditing] = useState3(false)
-  const [form, setForm3] = useState3({ age: profile?.age || '', weight: profile?.weight || '', height: profile?.height || '', blood_type: profile?.blood_type || '' })
-
-  async function handleSave() {
-    await updateProfile(form)
-    setEditing(false)
-  }
-
-  return (
-    <div style={pageStyle}>
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>👤</div>
-        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 4px' }}>{profile?.full_name}</h1>
-        <span style={{ background: 'rgba(16,217,160,0.12)', color: '#10D9A0', borderRadius: 8, padding: '4px 14px', fontSize: 12, fontWeight: 700 }}>
-          {profile?.role === 'pharmacist' ? '👨‍⚕️ صيدلاني' : '🧑 مريض'}
-        </span>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
-        {[['العمر', profile?.age, 'سنة'], ['الوزن', profile?.weight, 'كجم'], ['الطول', profile?.height, 'سم'], ['الفصيلة', profile?.blood_type, '']].map(([l, v, u]) => (
-          <div key={l} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
-            <div style={{ color: '#10D9A0', fontSize: 18, fontWeight: 800 }}>{v || '—'}</div>
-            <div style={{ color: '#6B7A99', fontSize: 10 }}>{u}</div>
-            <div style={{ color: '#9BA8BF', fontSize: 11, marginTop: 2 }}>{l}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Active meds */}
-      <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: 18, marginBottom: 16 }}>
-        <div style={{ color: '#9BA8BF', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💊 الأدوية النشطة</div>
-        <div style={{ color: '#F0F4FF', fontSize: 28, fontWeight: 800 }}>{medications.length} <span style={{ color: '#6B7A99', fontSize: 14, fontWeight: 400 }}>دواء</span></div>
-      </div>
-
-      {/* QR */}
-      <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 20 }}>
-        <div style={{ fontSize: 48, marginBottom: 10 }}>📱</div>
-        <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 16, marginBottom: 6 }}>QR التاريخ الطبي</div>
-        <p style={{ color: '#6B7A99', fontSize: 13, marginBottom: 16 }}>اعرضه للدكتور ليشوف تاريخك الطبي كامل فوراً</p>
-        <button style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 12, padding: '11px 28px', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
-          عرض QR Code
-        </button>
-      </div>
-
-      {/* Sign out */}
-      <button onClick={signOut} style={{ width: '100%', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: 14, padding: '14px 0', color: '#FF6B6B', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
-        تسجيل الخروج
-      </button>
-    </div>
-  )
-}
 
 // ─── OnboardingPage ───────────────────────────────────────────
 import { useState as useState4 } from 'react'
