@@ -36,8 +36,8 @@ Extract the following information and respond ONLY with valid JSON, no markdown,
 If you cannot read the medication clearly, set confidence to 0.1 and fill what you can see.`
           },
           {
-            inline_data: {
-              mime_type: mimeType,
+            inlineData: {
+              mimeType: mimeType,
               data: imageBase64
             }
           }

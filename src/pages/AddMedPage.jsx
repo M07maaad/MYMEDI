@@ -195,13 +195,24 @@ export default function AddMedPage() {
     }
   }
 
+  const isTabletOrCapsule = () => {
+    const term = (form.generic_name + ' ' + form.trade_name + ' ' + (aiResult?.dosage_form || '')).toLowerCase()
+    const nonTablets = ['syrup', 'suspension', 'cream', 'ointment', 'injection', 'drops', 'spray', 'lotion', 'gel', 'inhaler', 'شراب', 'مرهم', 'كريم', 'حقن', 'نقط', 'بخاخ']
+    return !nonTablets.some(w => term.includes(w))
+  }
+
   async function handleSave() {
-    if (!form.generic_name || !form.dose || form.dose_times.length === 0) {
+    const isTab = isTabletOrCapsule()
+    if (!form.generic_name || (isTab && !form.dose) || form.dose_times.length === 0) {
       setError('من فضلك أكمل: اسم الدواء، الجرعة، والمواعيد'); return
     }
     setSaving(true); setError('')
     try {
-      await addMedication(form)
+      await addMedication({
+        ...form,
+        dose: isTab ? form.dose : '-',
+        stock_count: isTab ? form.stock_count : null
+      })
       navigate('/medications')
     } catch (e) {
       setError(e.message)
@@ -311,16 +322,20 @@ export default function AddMedPage() {
         <input placeholder="مثال: جلوكوفاج" value={form.trade_name}
           onChange={e => update('trade_name', e.target.value)} style={S.input} />
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <label style={S.label}>الجرعة *</label>
-        <input placeholder="مثال: 500mg" value={form.dose}
-          onChange={e => update('dose', e.target.value)} style={S.input} />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <label style={S.label}>المخزون (عدد الحبوب)</label>
-        <input type="number" value={form.stock_count}
-          onChange={e => update('stock_count', parseInt(e.target.value) || 0)} style={S.input} />
-      </div>
+      {isTabletOrCapsule() && (
+        <>
+          <div style={{ marginBottom: 16 }}>
+            <label style={S.label}>الجرعة *</label>
+            <input placeholder="مثال: 500mg" value={form.dose}
+              onChange={e => update('dose', e.target.value)} style={S.input} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={S.label}>المخزون (عدد الحبوب)</label>
+            <input type="number" value={form.stock_count}
+              onChange={e => update('stock_count', parseInt(e.target.value) || 0)} style={S.input} />
+          </div>
+        </>
+      )}
 
       <div style={{ marginBottom: 16 }}>
         <label style={S.label}>مواعيد الجرعة *</label>

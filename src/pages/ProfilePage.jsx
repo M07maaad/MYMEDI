@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [saving,  setSaving]  = useState(false)
   const [error,   setError]   = useState('')
+  const [showQR,  setShowQR]  = useState(false)
 
   const [form, setForm] = useState({
     full_name:  profile?.full_name  || '',
@@ -150,14 +151,25 @@ export default function ProfilePage() {
 
       {/* ── QR Code ─────────────────────────────────────────── */}
       <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 20 }}>
-        <div style={{ fontSize: 48, marginBottom: 10 }}>📱</div>
-        <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 16, marginBottom: 6 }}>QR التاريخ الطبي</div>
-        <p style={{ color: '#6B7A99', fontSize: 13, marginBottom: 16 }}>
-          اعرضه للدكتور ليشوف تاريخك الطبي كامل فوراً
-        </p>
-        <button style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 12, padding: '11px 28px', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
-          عرض QR Code
-        </button>
+        {showQR ? (
+          <div>
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/profile/' + profile?.id)}`} alt="QR Code" style={{ borderRadius: 8, marginBottom: 16 }} />
+            <button onClick={() => setShowQR(false)} style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 12, padding: '11px 28px', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif', display: 'block', margin: '0 auto' }}>
+              إخفاء QR Code
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>📱</div>
+            <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 16, marginBottom: 6 }}>QR التاريخ الطبي</div>
+            <p style={{ color: '#6B7A99', fontSize: 13, marginBottom: 16 }}>
+              اعرضه للدكتور ليشوف تاريخك الطبي كامل فوراً
+            </p>
+            <button onClick={() => setShowQR(true)} style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 12, padding: '11px 28px', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+              عرض QR Code
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Sign Out ────────────────────────────────────────── */}
