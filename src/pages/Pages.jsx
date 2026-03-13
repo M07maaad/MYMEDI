@@ -27,13 +27,15 @@ export function MedicationsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                   <div>
                     <div style={{ color: '#F0F4FF', fontWeight: 800, fontSize: 16 }}>{med.trade_name || med.generic_name}</div>
-                    <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.generic_name} — {med.dose}</div>
+                    <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.generic_name}{med.dose !== '-' ? ` — ${med.dose}` : ''}</div>
                   </div>
                   {hasInteraction && <Badge label="⚠️ تفاعل" color="#FF6B6B" />}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   {med.dose_times.map(t => <Badge key={t} label={t} color={med.color} />)}
-                  <span style={{ marginRight: 'auto', color: med.stock_count <= 7 ? '#FBBF24' : '#6B7A99', fontSize: 12 }}>📦 {med.stock_count} متبقية</span>
+                  {med.stock_count !== null && (
+                    <span style={{ marginRight: 'auto', color: med.stock_count <= 7 ? '#FBBF24' : '#6B7A99', fontSize: 12 }}>📦 {med.stock_count} متبقية</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -91,7 +93,7 @@ export function SchedulePage() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ color: taken ? '#6B7A99' : '#F0F4FF', fontWeight: 700, textDecoration: taken ? 'line-through' : 'none' }}>{med.trade_name || med.generic_name}</div>
-                      <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.dose} — {med.with_food ? 'مع الأكل 🍽️' : 'على معدة فارغة'}</div>
+                      <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.dose !== '-' ? `${med.dose} — ` : ''}{med.with_food ? 'مع الأكل 🍽️' : 'على معدة فارغة'}</div>
                     </div>
                     {!taken && (
                       <button onClick={() => handleTake(med, period)} style={{ background: 'rgba(16,217,160,0.12)', border: '1px solid rgba(16,217,160,0.3)', borderRadius: 10, padding: '8px 14px', color: '#10D9A0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>أخذت</button>
@@ -171,7 +173,8 @@ import { useLabResults } from '../hooks/useLabResults'
 export function LabsPage() {
   const { labs, loading, addLabResult } = useLabResults()
   const [showForm, setShowForm] = useState2(false)
-  const [form, setForm] = useState2({ test_name: '', result_value: '', unit: '', normal_range: '', test_date: new Date().toISOString().split('T')[0], is_abnormal: false })
+  const [formType, setFormType] = useState2('lab') // 'lab' or 'xray'
+  const [form, setForm] = useState2({ test_name: '', result_value: '', unit: '', normal_range: '', test_date: new Date().toISOString().split('T')[0], is_abnormal: false, notes: 'lab' })
   const [file, setFile] = useState2(null)
   const [saving, setSaving] = useState2(false)
   const fileRef2 = useRef2()
@@ -182,7 +185,7 @@ export function LabsPage() {
     try {
       await addLabResult(form, file)
       setShowForm(false)
-      setForm({ test_name: '', result_value: '', unit: '', normal_range: '', test_date: new Date().toISOString().split('T')[0], is_abnormal: false })
+      setForm({ test_name: '', result_value: '', unit: '', normal_range: '', test_date: new Date().toISOString().split('T')[0], is_abnormal: false, notes: formType })
       setFile(null)
     } finally { setSaving(false) }
   }
@@ -190,21 +193,34 @@ export function LabsPage() {
   return (
     <div style={pageStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: 0 }}>تحاليلي 🧪</h1>
+        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: 0 }}>تحاليلي وأشعتي 🧪🩻</h1>
         <button onClick={() => setShowForm(!showForm)} style={addBtnStyle}>{showForm ? 'إلغاء' : '+ إضافة'}</button>
       </div>
 
       {showForm && (
         <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
-          {[['test_name','اسم التحليل*','مثال: HbA1c'], ['result_value','النتيجة','مثال: 7.2'], ['unit','الوحدة','مثال: %'], ['normal_range','المعدل الطبيعي','مثال: 4.0 - 5.6']].map(([k,l,p]) => (
+
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+            <button onClick={() => { setFormType('lab'); setForm(p => ({ ...p, notes: 'lab' })) }} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${formType === 'lab' ? '#10D9A0' : 'rgba(255,255,255,0.1)'}`, background: formType === 'lab' ? 'rgba(16,217,160,0.1)' : 'transparent', color: formType === 'lab' ? '#10D9A0' : '#6B7A99', cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>🧪 تحليل</button>
+            <button onClick={() => { setFormType('xray'); setForm(p => ({ ...p, notes: 'xray' })) }} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${formType === 'xray' ? '#10D9A0' : 'rgba(255,255,255,0.1)'}`, background: formType === 'xray' ? 'rgba(16,217,160,0.1)' : 'transparent', color: formType === 'xray' ? '#10D9A0' : '#6B7A99', cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>🩻 أشعة</button>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: '#9BA8BF', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }}>{formType === 'lab' ? 'اسم التحليل*' : 'اسم الأشعة*'}</label>
+            <input placeholder={formType === 'lab' ? 'مثال: HbA1c' : 'مثال: أشعة سينية على الصدر'} value={form.test_name} onChange={e => setForm(p => ({ ...p, test_name: e.target.value }))}
+              style={{ width: '100%', background: '#070B14', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px', color: '#F0F4FF', fontSize: 14, fontFamily: 'Cairo, sans-serif', boxSizing: 'border-box' }} />
+          </div>
+
+          {formType === 'lab' && [['result_value','النتيجة','مثال: 7.2'], ['unit','الوحدة','مثال: %'], ['normal_range','المعدل الطبيعي','مثال: 4.0 - 5.6']].map(([k,l,p]) => (
             <div key={k} style={{ marginBottom: 14 }}>
               <label style={{ color: '#9BA8BF', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }}>{l}</label>
               <input placeholder={p} value={form[k]} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))}
                 style={{ width: '100%', background: '#070B14', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px', color: '#F0F4FF', fontSize: 14, fontFamily: 'Cairo, sans-serif', boxSizing: 'border-box' }} />
             </div>
           ))}
+
           <div style={{ marginBottom: 14 }}>
-            <label style={{ color: '#9BA8BF', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }}>تاريخ التحليل</label>
+            <label style={{ color: '#9BA8BF', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }}>التاريخ</label>
             <input type="date" value={form.test_date} onChange={e => setForm(p => ({ ...p, test_date: e.target.value }))}
               style={{ width: '100%', background: '#070B14', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px', color: '#F0F4FF', fontSize: 14, fontFamily: 'Cairo, sans-serif', boxSizing: 'border-box' }} />
           </div>
@@ -212,7 +228,7 @@ export function LabsPage() {
           <button onClick={() => fileRef2.current?.click()} style={{ background: 'none', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 10, padding: '10px 0', width: '100%', color: '#6B7A99', fontSize: 13, cursor: 'pointer', marginBottom: 14, fontFamily: 'Cairo, sans-serif' }}>
             {file ? `📎 ${file.name}` : '+ إرفاق صورة أو PDF'}
           </button>
-          <button onClick={handleSave} disabled={saving} style={{ ...addBtnStyle, width: '100%', padding: '13px 0', fontSize: 15 }}>{saving ? 'جاري الحفظ...' : 'حفظ التحليل'}</button>
+          <button onClick={handleSave} disabled={saving} style={{ ...addBtnStyle, width: '100%', padding: '13px 0', fontSize: 15 }}>{saving ? 'جاري الحفظ...' : (formType === 'lab' ? 'حفظ التحليل' : 'حفظ الأشعة')}</button>
         </div>
       )}
 
@@ -220,19 +236,25 @@ export function LabsPage() {
         : labs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🧪</div>
-            <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 16 }}>لا يوجد تحاليل</div>
-            <div style={{ color: '#6B7A99', fontSize: 13, marginTop: 6 }}>أضف أول تحليل ليك</div>
+            <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 16 }}>لا يوجد سجلات</div>
+            <div style={{ color: '#6B7A99', fontSize: 13, marginTop: 6 }}>أضف أول تحليل أو أشعة ليك</div>
           </div>
         ) : labs.map(lab => (
           <div key={lab.id} style={{ background: '#111827', border: `1px solid ${lab.is_abnormal ? 'rgba(255,107,107,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: 16, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15 }}>{lab.test_name}</div>
-              <div style={{ color: '#6B7A99', fontSize: 12, marginTop: 3 }}>{new Date(lab.test_date).toLocaleDateString('ar-EG')} {lab.normal_range && `· طبيعي: ${lab.normal_range}`}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 24 }}>{lab.notes === 'xray' ? '🩻' : '🧪'}</div>
+              <div>
+                <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15 }}>{lab.test_name}</div>
+                <div style={{ color: '#6B7A99', fontSize: 12, marginTop: 3 }}>{new Date(lab.test_date).toLocaleDateString('ar-EG')} {lab.normal_range && `· طبيعي: ${lab.normal_range}`}</div>
+                {lab.file_url && <a href={lab.file_url} target="_blank" rel="noreferrer" style={{ color: '#10D9A0', fontSize: 11, textDecoration: 'none', display: 'block', marginTop: 4 }}>📎 عرض المرفق</a>}
+              </div>
             </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ color: lab.is_abnormal ? '#FF6B6B' : '#10D9A0', fontWeight: 800, fontSize: 18 }}>{lab.result_value} <span style={{ fontSize: 12, fontWeight: 400 }}>{lab.unit}</span></div>
-              {lab.is_abnormal && <div style={{ color: '#FF6B6B', fontSize: 11 }}>غير طبيعي</div>}
-            </div>
+            {lab.notes !== 'xray' && (
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ color: lab.is_abnormal ? '#FF6B6B' : '#10D9A0', fontWeight: 800, fontSize: 18 }}>{lab.result_value} <span style={{ fontSize: 12, fontWeight: 400 }}>{lab.unit}</span></div>
+                {lab.is_abnormal && <div style={{ color: '#FF6B6B', fontSize: 11 }}>غير طبيعي</div>}
+              </div>
+            )}
           </div>
         ))
       }

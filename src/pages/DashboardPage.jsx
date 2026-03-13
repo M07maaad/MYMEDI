@@ -91,7 +91,7 @@ export default function DashboardPage() {
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${med.color || '#10D9A0'}20`, border: `2px solid ${med.color || '#10D9A0'}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💊</div>
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15 }}>{med.trade_name || med.generic_name}</div>
-                <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.dose} — {med.with_food ? 'مع الأكل 🍽️' : 'على معدة فارغة'}</div>
+                <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.dose !== '-' ? `${med.dose} — ` : ''}{med.with_food ? 'مع الأكل 🍽️' : 'على معدة فارغة'}</div>
               </div>
               <button onClick={() => logDose(med.id, currentPeriod, true).then(() => fetchDoseLogsToday().then(setDoseLogs))}
                 style={{ background: 'rgba(16,217,160,0.12)', border: '1px solid rgba(16,217,160,0.3)', borderRadius: 10, padding: '8px 14px', color: '#10D9A0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
