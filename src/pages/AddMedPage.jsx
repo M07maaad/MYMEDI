@@ -84,7 +84,7 @@ onMouseLeave={e => e.currentTarget.style.background = ‘transparent’}>
 </div>
 )}
 {query.length >= 2 && results.length === 0 && !loading && (
-<div style={{ padding: ‘10px 16px’, color: ‘#6B7A99’, fontSize: 13, textAlign: ‘center’ }}>مش موجود — اكتبه يدوياً 👇</div>
+<div style={{ padding: ‘10px 16px’, color: ‘#6B7A99’, fontSize: 13, textAlign: ‘center’ }}>مش موجود – اكتبه يدوياً 👇</div>
 )}
 </div>
 )
@@ -205,7 +205,7 @@ const [scanning, setScanning] = useState(false)
 const [saving,   setSaving]   = useState(false)
 const [errors,   setErrors]   = useState([])
 
-// قائمة أدوية — كل صورة ممكن ترجع أكتر من دواء
+// قائمة أدوية – كل صورة ممكن ترجع أكتر من دواء
 const [drugs,      setDrugs]      = useState([emptyForm()])
 const [schedules,  setSchedules]  = useState([null])
 const [loadingSch, setLoadingSch] = useState([false])
@@ -219,13 +219,13 @@ setSchedules(p => p.filter((*, i) => i !== idx))
 setLoadingSch(p => p.filter((_, i) => i !== idx))
 }
 
-// ── AI: ابحث عن كل دواء في الـ DB ──────────────────────────
+// – AI: ابحث عن كل دواء في الـ DB –––––––––––––
 async function searchDrugInDB(name) {
 const { data } = await supabase.rpc(‘search_drugs’, { search_term: name })
 return data?.[0] || null
 }
 
-// ── AI: اقرأ الصورة وارجع قائمة الأدوية ──────────────────
+// – AI: اقرأ الصورة وارجع قائمة الأدوية ——————
 async function handleImagePick(e) {
 const file = e.target.files[0]
 if (!file) return
@@ -250,7 +250,7 @@ const key    = import.meta.env.VITE_OPENROUTER_API_KEY
         content: [
           {
             type: 'text',
-            text: `You are an expert pharmacist. Look at this image carefully — it may contain ONE or MULTIPLE medications.
+            text: `You are an expert pharmacist. Look at this image carefully -- it may contain ONE or MULTIPLE medications.
 ```
 
 List ALL medications you can identify.
@@ -371,7 +371,7 @@ setSaving(false)
 }
 }
 
-// ── Step 1 ────────────────────────────────────────────────
+// – Step 1 ————————————————
 if (step === 1) return (
 <div style={S.page}>
 <button onClick={() => navigate(’/medications’)} style={S.back}>← رجوع</button>
@@ -406,7 +406,7 @@ if (step === 1) return (
 
 )
 
-// ── Step 2: كاميرا ────────────────────────────────────────
+// – Step 2: كاميرا ––––––––––––––––––––
 if (step === 2) return (
 <div style={S.page}>
 <button onClick={() => setStep(1)} style={S.back}>← رجوع</button>
@@ -433,7 +433,7 @@ style={{ border: ‘2px dashed rgba(16,217,160,0.4)’, borderRadius: 20, paddin
 </div>
 )
 
-// ── Step 3: الفورم ────────────────────────────────────────
+// – Step 3: الفورم ––––––––––––––––––––
 return (
 <div style={S.page}>
 <button onClick={() => setStep(mode === ‘camera’ ? 2 : 1)} style={S.back}>← رجوع</button>
@@ -450,7 +450,7 @@ return (
     <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 20px' }}>تفاصيل الدواء</h1>
   )}
 
-  {/* Drug Search — للإدخال اليدوي */}
+  {/* Drug Search -- للإدخال اليدوي */}
   {mode === 'manual' && (
     <DrugSearch onSelect={handleDrugSelect} />
   )}
