@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMedications } from '../hooks/useMedications'
-import { useLabResults } from '../hooks/useLabResults'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { fileToBase64 } from '../lib/gemini'
 import { Card, Badge, EmptyState, LoadingSpinner, PageHeader } from '../components/UI'
 
 export function MedicationsPage() {
@@ -189,9 +187,6 @@ export function InteractionsPage() {
   )
 }
 
-// - LabsPage -- تحاليل + أشعة -
-import { useLabResults } from '../hooks/useLabResults'
-import { fileToBase64 } from '../lib/gemini'
 
 export function LabsPage() {
   const { labs, loading, addLabResult } = useLabResults()
