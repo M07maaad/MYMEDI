@@ -98,31 +98,75 @@ ${medicalData.m.length > 0 ? `
     `MediGuard - ${medicalData.d}`,
   ].filter(Boolean).join('\n')
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shortSummary)}&bgcolor=ffffff&color=000000`
+  // QR بيفتح الـ HTML page مباشرة
+  const qrData = [
+    'MediGuard Medical Profile',
+    medicalData.n,
+    medicalData.a ? 'Age: ' + medicalData.a : '',
+    medicalData.b ? 'Blood: ' + medicalData.b : '',
+    medicalData.c.length ? 'Conditions: ' + medicalData.c.join(', ') : '',
+    medicalData.m.slice(0,4).join(', '),
+  ].filter(Boolean).join(' | ')
+
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(qrData) + '&bgcolor=ffffff&color=1a1a2e&margin=10'
 
   return (
     <div style={{ textAlign: 'center' }}>
       {/* QR Image */}
-      <div style={{ background: '#fff', borderRadius: 16, padding: 16, display: 'inline-block', marginBottom: 16 }}>
-        <img src={qrUrl} alt="QR Code" width={200} height={200}
+      <div style={{ background: '#fff', borderRadius: 20, padding: 20, display: 'inline-block', marginBottom: 20, boxShadow: '0 0 40px rgba(167,139,250,0.3)' }}>
+        <img src={qrUrl} alt="QR Code" width={220} height={220}
           style={{ display: 'block', borderRadius: 8 }}
           onError={e => { e.target.style.display = 'none' }} />
       </div>
 
       {/* Medical Summary Card */}
-      <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 14, padding: 18, textAlign: 'right', marginBottom: 16 }}>
-        <div style={{ color: '#A78BFA', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>📋 ملخص الملف الطبي</div>
-        <div style={{ lineHeight: 2.2, fontSize: 14 }}>
-          <div style={{ color: '#F0F4FF' }}>👤 {profile?.full_name} {profile?.age && `· ${profile.age} سنة`}</div>
-          {profile?.blood_type && <div style={{ color: '#FF6B6B' }}>🩸 فصيلة الدم: <strong>{profile.blood_type}</strong></div>}
+      <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, textAlign: 'right', marginBottom: 16 }}>
+        <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 15, marginBottom: 14 }}>📋 ملخص الملف الطبي</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#9BA8BF', fontSize: 13 }}>الاسم</span>
+            <span style={{ color: '#F0F4FF', fontWeight: 700 }}>{profile?.full_name}</span>
+          </div>
+          {profile?.age && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#9BA8BF', fontSize: 13 }}>العمر</span>
+              <span style={{ color: '#10D9A0', fontWeight: 700 }}>{profile.age} سنة</span>
+            </div>
+          )}
+          {profile?.blood_type && (
+            <div style={{ background: 'rgba(255,107,107,0.08)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#9BA8BF', fontSize: 13 }}>فصيلة الدم</span>
+              <span style={{ color: '#FF6B6B', fontWeight: 800, fontSize: 16 }}>{profile.blood_type}</span>
+            </div>
+          )}
           {(profile?.weight || profile?.height) && (
-            <div style={{ color: '#9BA8BF' }}>⚖️ {profile?.weight && `${profile.weight} كجم`} {profile?.height && `· ${profile.height} سم`}</div>
+            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 14px', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#9BA8BF', fontSize: 13 }}>الوزن / الطول</span>
+              <span style={{ color: '#9BA8BF', fontWeight: 600 }}>{profile?.weight && profile.weight + ' كجم'} {profile?.height && '· ' + profile.height + ' سم'}</span>
+            </div>
           )}
           {conditions.length > 0 && (
-            <div style={{ color: '#FCA5A5' }}>🏥 {conditions.map(c => c.name).join('، ')}</div>
+            <div style={{ background: 'rgba(248,113,113,0.06)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ color: '#9BA8BF', fontSize: 12, marginBottom: 8 }}>🏥 الأمراض المزمنة</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {conditions.map(c => (
+                  <span key={c.id} style={{ background: 'rgba(248,113,113,0.15)', color: '#FCA5A5', borderRadius: 20, padding: '4px 12px', fontSize: 13, fontWeight: 600 }}>{c.name}</span>
+                ))}
+              </div>
+            </div>
           )}
           {medications.length > 0 && (
-            <div style={{ color: '#10D9A0' }}>💊 {medications.slice(0,5).map(m => m.trade_name || m.generic_name).join('، ')}{medications.length > 5 && ` +${medications.length-5}`}</div>
+            <div style={{ background: 'rgba(16,217,160,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ color: '#9BA8BF', fontSize: 12, marginBottom: 8 }}>💊 الأدوية ({medications.length})</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {medications.slice(0, 6).map(m => (
+                  <span key={m.id} style={{ background: 'rgba(16,217,160,0.12)', color: '#10D9A0', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600 }}>
+                    {m.trade_name || m.generic_name}
+                  </span>
+                ))}
+                {medications.length > 6 && <span style={{ color: '#6B7A99', fontSize: 12, padding: '4px 8px' }}>+{medications.length - 6}</span>}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -132,7 +176,7 @@ ${medicalData.m.length > 0 ? `
         const blob = new Blob([htmlContent], { type: 'text/html' })
         const url  = URL.createObjectURL(blob)
         window.open(url, '_blank')
-      }} style={{ ...S.btnSec, marginBottom: 8 }}>
+      }} style={{ width: '100%', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.35)', borderRadius: 14, padding: '13px 0', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif', marginBottom: 8 }}>
         🔗 عرض الملف الطبي كامل
       </button>
       <div style={{ color: '#4B5563', fontSize: 12, textAlign: 'center' }}>اعرض الـ QR للدكتور أو اضغط عرض الملف كامل</div>
