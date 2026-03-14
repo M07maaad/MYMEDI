@@ -89,15 +89,14 @@ ${medicalData.m.length > 0 ? `
   // بنستخدم QR Server API مجاني
   const qrText   = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent).slice(0, 500)}`
   // بما إن الـ data URL طويلة جداً للـ QR، هنعمل صفحة ملخص بسيطة
-  const shortSummary = [
-    'MediGuard ' + medicalData.n,
-    medicalData.a ? 'Age ' + medicalData.a : '',
-    medicalData.b ? 'Blood ' + medicalData.b : '',
-    medicalData.c.length ? medicalData.c.join(', ') : '',
-    medicalData.m.slice(0,3).map(m => m.split(' ')[0]).join(', '),
-  ].filter(Boolean).join(' | ')
+  const qrText = [
+    'MediGuard',
+    medicalData.n,
+    medicalData.b ? 'Blood:' + medicalData.b : '',
+    medicalData.a ? 'Age:' + medicalData.a : '',
+  ].filter(Boolean).join(' ')
 
-  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(shortSummary)
+  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(qrText) + '&choe=UTF-8'
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -121,7 +120,7 @@ ${medicalData.m.length > 0 ? `
             <div style={{ color: '#FCA5A5' }}>🏥 {conditions.map(c => c.name).join('، ')}</div>
           )}
           {medications.length > 0 && (
-            <div style={{ color: '#10D9A0' }}>💊 {medications.slice(0,4).map(m => m.generic_name.split(' ')[0]).join('، ')}{medications.length > 4 && ` +${medications.length-4}`}</div>
+            <div style={{ color: '#10D9A0' }}>💊 {medications.slice(0,5).map(m => m.trade_name || m.generic_name).join('، ')}{medications.length > 5 && ` +${medications.length-5}`}</div>
           )}
         </div>
       </div>
