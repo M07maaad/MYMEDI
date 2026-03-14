@@ -38,7 +38,7 @@ const objEnd   = clean.lastIndexOf(’}’)
 return JSON.parse(clean.slice(objStart, objEnd + 1))
 }
 
-// ─── Drug Search ──────────────────────────────────────────────
+// - Drug Search -
 function DrugSearch({ onSelect }) {
 const [query,   setQuery]   = useState(’’)
 const [results, setResults] = useState([])
@@ -90,7 +90,7 @@ onMouseLeave={e => e.currentTarget.style.background = ‘transparent’}>
 )
 }
 
-// ─── Single Drug Form ─────────────────────────────────────────
+// - Single Drug Form -
 function DrugForm({ form, onChange, onSave, saving, error, aiSchedule, loadingSchedule, onFetchSchedule, onApplySchedule, onRemove, index, total }) {
 const showStock = needsStockAndDose(form.dosage_form)
 const toggle = p => onChange(‘dose_times’, form.dose_times.includes(p) ? form.dose_times.filter(x => x !== p) : […form.dose_times, p])
@@ -193,7 +193,7 @@ function emptyForm() {
 return { generic_name: ‘’, trade_name: ‘’, dose: ‘’, dosage_form: ‘tablet’, dose_times: [], with_food: true, stock_count: 30, color: COLORS[0] }
 }
 
-// ─── Main ─────────────────────────────────────────────────────
+// - Main -
 export default function AddMedPage() {
 const navigate = useNavigate()
 const { addMedication } = useMedications()
