@@ -3,15 +3,17 @@ import { useAuth } from ‘./hooks/useAuth’
 import LoadingScreen from ‘./components/LoadingScreen’
 import BottomNav from ‘./components/BottomNav’
 
-import { OnboardingPage }   from ‘./pages/Pages’
-import AuthPage             from ‘./pages/AuthPage’
-import DashboardPage        from ‘./pages/DashboardPage’
-import AddMedPage           from ‘./pages/AddMedPage’
-import { MedicationsPage }  from ‘./pages/MedicationsPage’
-import { SchedulePage }     from ‘./pages/Pages’
-import { InteractionsPage } from ‘./pages/Pages’
-import { LabsPage }         from ‘./pages/Pages’
-import { ProfilePage }      from ‘./pages/Pages’
+import {
+OnboardingPage,
+SchedulePage,
+InteractionsPage,
+LabsPage,
+ProfilePage,
+MedicationsPage,
+} from ‘./pages/Pages’
+import AuthPage     from ‘./pages/AuthPage’
+import DashboardPage from ‘./pages/DashboardPage’
+import AddMedPage   from ‘./pages/AddMedPage’
 
 function PrivateRoute({ children }) {
 const { user, loading } = useAuth()
