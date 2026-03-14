@@ -1,0 +1,734 @@
+import { useNavigate } from 'react-router-dom'
+import { useMedications } from '../hooks/useMedications'
+import { Card, Badge, EmptyState, LoadingSpinner, PageHeader } from '../components/UI'
+
+export function MedicationsPage() {
+  const navigate = useNavigate()
+  const { medications, interactions, deleteMedication, loading } = useMedications()
+
+  if (loading) return <div style={pageStyle}><LoadingSpinner /></div>
+
+  return (
+    <div style={pageStyle}>
+      <PageHeader title="&#1571;&#1583;&#1608;&#1610;&#1578;&#1610; &#128138;" subtitle={`${medications.length} &#1583;&#1608;&#1575;&#1569; &#1606;&#1588;&#1591;`}
+        action={<button onClick={() => navigate('/medications/add')} style={addBtnStyle}>+ &#1573;&#1590;&#1575;&#1601;&#1577;</button>} />
+
+      {medications.length === 0 ? (
+        <EmptyState icon="&#128138;" title="&#1604;&#1575; &#1610;&#1608;&#1580;&#1583; &#1571;&#1583;&#1608;&#1610;&#1577;" subtitle="&#1575;&#1576;&#1583;&#1571; &#1576;&#1573;&#1590;&#1575;&#1601;&#1577; &#1571;&#1583;&#1608;&#1610;&#1578;&#1603; &#1575;&#1604;&#1570;&#1606;"
+          action={<button onClick={() => navigate('/medications/add')} style={addBtnStyle}>&#1573;&#1590;&#1575;&#1601;&#1577; &#1583;&#1608;&#1575;&#1569;</button>} />
+      ) : medications.map(med => {
+        const hasInteraction = interactions.some(i =>
+          i.drug1_name === med.generic_name || i.drug2_name === med.generic_name
+        )
+        return (
+          <Card key={med.id} glow={med.color} style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${med.color}25`, border: `2px solid ${med.color}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>&#128138;</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                  <div>
+                    <div style={{ color: '#F0F4FF', fontWeight: 800, fontSize: 16 }}>{med.trade_name || med.generic_name}</div>
+                    <div style={{ color: '#6B7A99', fontSize: 12 }}>
+                      {med.generic_name}{med.dose && med.dose !== '-' ? ` -- ${med.dose}` : ''}
+                      {med.dosage_form && med.dosage_form !== 'tablet' && (
+                        <span style={{ marginRight: 6, background: 'rgba(56,189,248,0.1)', color: '#38BDF8', borderRadius: 4, padding: '1px 6px', fontSize: 11 }}>{med.dosage_form}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {hasInteraction && <Badge label="&#9888;&#65039; &#1578;&#1601;&#1575;&#1593;&#1604;" color="#FF6B6B" />}
+                    {/* &#1586;&#1585;&#1575;&#1585; &#1575;&#1604;&#1581;&#1584;&#1601; */}
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`&#1581;&#1584;&#1601; ${med.trade_name || med.generic_name}&#1567;`)) {
+                          deleteMedication(med.id)
+                        }
+                      }}
+                      style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 8, padding: '5px 10px', color: '#FF6B6B', fontSize: 12, cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontWeight: 700 }}
+                    >
+                      &#1581;&#1584;&#1601;
+                    </button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {med.dose_times.map(t => <Badge key={t} label={t} color={med.color} />)}
+                  {med.stock_count > 0 && (
+                    <span style={{ marginRight: 'auto', color: med.stock_count <= 7 ? '#FBBF24' : '#6B7A99', fontSize: 12 }}>
+                      &#128230; {med.stock_count} &#1605;&#1578;&#1576;&#1602;&#1610;&#1577;
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
+const pageStyle   = { padding: '24px 20px 100px', direction: 'rtl', fontFamily: 'Cairo, sans-serif', minHeight: '100vh', background: '#070B14' }
+const addBtnStyle = { background: '#10D9A0', border: 'none', borderRadius: 12, padding: '10px 18px', color: '#000', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }
+
+
+export function SchedulePage() {
+  const { medications, logDose, fetchDoseLogsToday } = useMeds2()
+  const [doseLogs, setDoseLogs] = useState([])
+  const periodIcons = { &#1589;&#1576;&#1581;: '&#127749;', &#1592;&#1607;&#1585;: '&#9728;&#65039;', &#1605;&#1587;&#1575;&#1569;: '&#127780;&#65039;', &#1604;&#1610;&#1604;: '&#127769;' }
+
+  useEffect(() => { fetchDoseLogsToday().then(setDoseLogs) }, [medications])
+
+  const isTaken = (medId, period) => doseLogs.some(l => l.medication_id === medId && l.scheduled_time === period && l.was_taken)
+
+  async function handleTake(med, period) {
+    await logDose(med.id, period, true)
+    fetchDoseLogsToday().then(setDoseLogs)
+  }
+
+  return (
+    <div style={pageStyle}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: 0 }}>&#1575;&#1604;&#1580;&#1583;&#1608;&#1604; &#1575;&#1604;&#1610;&#1608;&#1605;&#1610; &#128197;</h1>
+        <p style={{ color: '#6B7A99', fontSize: 13, margin: '4px 0 0' }}>{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      </div>
+      {['&#1589;&#1576;&#1581;', '&#1592;&#1607;&#1585;', '&#1605;&#1587;&#1575;&#1569;', '&#1604;&#1610;&#1604;'].map(period => {
+        const periodMeds = medications.filter(m => m.dose_times.includes(period))
+        if (periodMeds.length === 0) return null
+        const takenInPeriod = periodMeds.filter(m => isTaken(m.id, period)).length
+        return (
+          <div key={period} style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <span style={{ fontSize: 20 }}>{periodIcons[period]}</span>
+              <span style={{ color: '#9BA8BF', fontWeight: 700, fontSize: 14 }}>{period}</span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+              <Badge label={`${takenInPeriod}/${periodMeds.length}`} color="#10D9A0" />
+            </div>
+            {periodMeds.map(med => {
+              const taken = isTaken(med.id, period)
+              return (
+                <Card key={med.id} style={{ marginBottom: 10, opacity: taken ? 0.65 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: taken ? `${med.color}25` : '#111827', border: `2px solid ${taken ? med.color : 'rgba(255,255,255,0.07)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: taken ? 18 : 14 }}>
+                      {taken ? '&#10003;' : '&#128138;'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: taken ? '#6B7A99' : '#F0F4FF', fontWeight: 700, textDecoration: taken ? 'line-through' : 'none' }}>{med.trade_name || med.generic_name}</div>
+                      <div style={{ color: '#6B7A99', fontSize: 12 }}>{med.dose && med.dose !== '-' ? `${med.dose} -- ` : ''}{med.with_food ? '&#1605;&#1593; &#1575;&#1604;&#1571;&#1603;&#1604; &#127869;&#65039;' : '&#1593;&#1604;&#1609; &#1605;&#1593;&#1583;&#1577; &#1601;&#1575;&#1585;&#1594;&#1577;'}</div>
+                    </div>
+                    {!taken && (
+                      <button onClick={() => handleTake(med, period)} style={{ background: 'rgba(16,217,160,0.12)', border: '1px solid rgba(16,217,160,0.3)', borderRadius: 10, padding: '8px 14px', color: '#10D9A0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>&#1571;&#1582;&#1584;&#1578;</button>
+                    )}
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// - InteractionsPage -
+import { useMedications as useMeds3 } from '../hooks/useMedications'
+import { Card as C2, Badge as B2 } from '../components/UI'
+
+export function InteractionsPage() {
+  const { medications, interactions } = useMeds3()
+  const safeNames = new Set([...interactions.flatMap(i => [i.drug1_name, i.drug2_name])])
+  const safeMeds  = medications.filter(m => !safeNames.has(m.generic_name))
+
+  return (
+    <div style={pageStyle}>
+      <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>&#1575;&#1604;&#1578;&#1601;&#1575;&#1593;&#1604;&#1575;&#1578; &#1575;&#1604;&#1583;&#1608;&#1575;&#1574;&#1610;&#1577; &#9888;&#65039;</h1>
+      <p style={{ color: '#6B7A99', fontSize: 13, marginBottom: 24 }}>&#1601;&#1581;&#1589; &#1578;&#1604;&#1602;&#1575;&#1574;&#1610; &#1604;&#1603;&#1604; &#1571;&#1583;&#1608;&#1610;&#1578;&#1603;</p>
+
+      {interactions.length === 0 ? (
+        <C2 style={{ textAlign: 'center', padding: 48 }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>&#9989;</div>
+          <div style={{ color: '#10D9A0', fontWeight: 800, fontSize: 18 }}>&#1604;&#1575; &#1578;&#1608;&#1580;&#1583; &#1578;&#1601;&#1575;&#1593;&#1604;&#1575;&#1578;</div>
+          <div style={{ color: '#6B7A99', fontSize: 14, marginTop: 8 }}>&#1571;&#1583;&#1608;&#1610;&#1578;&#1603; &#1570;&#1605;&#1606;&#1577; &#1605;&#1593; &#1576;&#1593;&#1590;&#1607;&#1575;</div>
+        </C2>
+      ) : interactions.map((inter, i) => (
+        <C2 key={i} glow="#FF6B6B" style={{ marginBottom: 16, background: 'rgba(255,107,107,0.06)' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 28 }}>&#9888;&#65039;</span>
+            <div>
+              <div style={{ color: '#FF6B6B', fontWeight: 800, fontSize: 16 }}>{inter.drug1_name} + {inter.drug2_name}</div>
+              <B2 label={`&#1582;&#1591;&#1608;&#1585;&#1577; ${inter.severity}`} color={inter.severity === '&#1582;&#1591;&#1610;&#1585;' ? '#FF6B6B' : inter.severity === '&#1605;&#1578;&#1608;&#1587;&#1591;' ? '#FBBF24' : '#38BDF8'} />
+            </div>
+          </div>
+          <p style={{ color: '#9BA8BF', fontSize: 14, lineHeight: 1.8, margin: '0 0 14px' }}>{inter.description}</p>
+          {inter.alternative && (
+            <div style={{ background: 'rgba(16,217,160,0.08)', border: '1px solid rgba(16,217,160,0.2)', borderRadius: 10, padding: 14 }}>
+              <div style={{ color: '#10D9A0', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>&#128161; &#1575;&#1604;&#1576;&#1583;&#1610;&#1604; &#1575;&#1604;&#1605;&#1602;&#1578;&#1585;&#1581;</div>
+              <div style={{ color: '#9BA8BF', fontSize: 13 }}>{inter.alternative}</div>
+            </div>
+          )}
+        </C2>
+      ))}
+
+      {safeMeds.length > 0 && (
+        <>
+          <p style={{ color: '#6B7A99', fontSize: 12, fontWeight: 700, margin: '24px 0 12px' }}>&#1575;&#1604;&#1571;&#1583;&#1608;&#1610;&#1577; &#1575;&#1604;&#1570;&#1605;&#1606;&#1577; &#9989;</p>
+          {safeMeds.map(med => (
+            <C2 key={med.id} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${med.color}20`, border: `2px solid ${med.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>&#128138;</div>
+                <div style={{ flex: 1, color: '#F0F4FF', fontWeight: 700 }}>{med.trade_name || med.generic_name}</div>
+                <B2 label="&#1570;&#1605;&#1606; &#10003;" color="#10D9A0" />
+              </div>
+            </C2>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
+// - LabsPage -- &#1578;&#1581;&#1575;&#1604;&#1610;&#1604; + &#1571;&#1588;&#1593;&#1577; -
+import { useRef as useRef2, useState as useState2 } from 'react'
+import { useLabResults } from '../hooks/useLabResults'
+import { fileToBase64 } from '../lib/gemini'
+
+export function LabsPage() {
+  const { labs, loading, addLabResult } = useLabResults()
+  const [tab,      setTab]      = useState2('lab')   // 'lab' | 'xray'
+  const [showForm, setShowForm] = useState2(false)
+  const [aiMode,   setAiMode]   = useState2(false)
+  const [scanning, setScanning] = useState2(false)
+  const [aiSummary,setAiSummary]= useState2(null)
+  const [form, setForm] = useState2({
+    test_name: '', result_value: '', unit: '', normal_range: '',
+    test_date: new Date().toISOString().split('T')[0],
+    is_abnormal: false, notes: '', type: 'lab',
+  })
+  const [file,   setFile]   = useState2(null)
+  const [saving, setSaving] = useState2(false)
+  const fileRef2 = useRef2()
+  const imgRef   = useRef2()
+
+  const filteredLabs = labs.filter(l => (l.type || 'lab') === tab)
+
+  function resetForm() {
+    setForm({ test_name: '', result_value: '', unit: '', normal_range: '', test_date: new Date().toISOString().split('T')[0], is_abnormal: false, notes: '', type: tab })
+    setFile(null); setAiSummary(null); setAiMode(false)
+  }
+
+  async function handleAIScan(e) {
+    const f = e.target.files[0]
+    if (!f) return
+    setFile(f); setScanning(true)
+    try {
+      const base64 = await fileToBase64(f)
+      const key    = import.meta.env.VITE_OPENROUTER_API_KEY
+
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${key}`,
+          'HTTP-Referer':  'https://mediguard.vercel.app',
+          'X-Title':       'MediGuard',
+        },
+        body: JSON.stringify({
+          model: 'openrouter/auto',
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'You are a medical expert. Analyze this medical document. Respond ONLY with JSON:\n{"type":"lab","findings":["finding in Arabic"],"summary":"&#1605;&#1604;&#1582;&#1589; &#1575;&#1604;&#1606;&#1578;&#1610;&#1580;&#1577; &#1576;&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;","is_abnormal":false,"recommendations":null}\nFor type: lab for blood/urine tests, xray for radiology.'
+              },
+              { type: 'image_url', image_url: { url: `data:${f.type};base64,${base64}` } }
+            ]
+          }],
+          max_tokens: 500,
+        })
+      })
+
+      const data   = await res.json()
+      const text   = data.choices?.[0]?.message?.content || ''
+      const clean  = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+      const start  = clean.indexOf('{')
+      const end    = clean.lastIndexOf('}')
+      const result = JSON.parse(clean.slice(start, end + 1))
+
+      setAiSummary(result)
+      setForm(p => ({
+        ...p,
+        notes:       result.summary || '',
+        is_abnormal: result.is_abnormal || false,
+        type:        result.type || tab,
+      }))
+    } catch (e) {
+      console.error('AI scan error:', e)
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  async function handleSave() {
+    if (!form.test_name || !form.test_date) return
+    setSaving(true)
+    try {
+      await addLabResult({ ...form, type: tab }, file)
+      setShowForm(false)
+      resetForm()
+    } finally { setSaving(false) }
+  }
+
+  const inputStyle = { width: '100%', background: '#070B14', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '12px 14px', color: '#F0F4FF', fontSize: 14, fontFamily: 'Cairo, sans-serif', boxSizing: 'border-box', outline: 'none' }
+  const labelStyle = { color: '#9BA8BF', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }
+
+  return (
+    <div style={pageStyle}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: 0 }}>&#1575;&#1604;&#1587;&#1580;&#1604; &#1575;&#1604;&#1591;&#1576;&#1610; &#127973;</h1>
+        <button onClick={() => { setShowForm(!showForm); resetForm() }} style={addBtnStyle}>
+          {showForm ? '&#1573;&#1604;&#1594;&#1575;&#1569;' : '+ &#1573;&#1590;&#1575;&#1601;&#1577;'}
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', background: '#111827', borderRadius: 12, padding: 4, marginBottom: 20 }}>
+        {[['lab', '&#129514; &#1578;&#1581;&#1575;&#1604;&#1610;&#1604;'], ['xray', '&#129659; &#1571;&#1588;&#1593;&#1577;']].map(([key, lbl]) => (
+          <button key={key} onClick={() => setTab(key)} style={{
+            flex: 1, background: tab === key ? '#10D9A0' : 'transparent',
+            border: 'none', borderRadius: 9, padding: '10px 0',
+            color: tab === key ? '#000' : '#6B7A99',
+            fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
+            transition: 'all 0.2s',
+          }}>{lbl}</button>
+        ))}
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
+          <div style={{ color: '#10D9A0', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>
+            {tab === 'lab' ? '&#129514; &#1573;&#1590;&#1575;&#1601;&#1577; &#1578;&#1581;&#1604;&#1610;&#1604;' : '&#129659; &#1573;&#1590;&#1575;&#1601;&#1577; &#1571;&#1588;&#1593;&#1577;'}
+          </div>
+
+          {/* AI Scan option */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <button onClick={() => setAiMode(false)} style={{
+              flex: 1, background: !aiMode ? 'rgba(16,217,160,0.15)' : '#070B14',
+              border: `1px solid ${!aiMode ? '#10D9A0' : 'rgba(255,255,255,0.07)'}`,
+              borderRadius: 10, padding: '10px 0', color: !aiMode ? '#10D9A0' : '#6B7A99',
+              fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
+            }}>&#9999;&#65039; &#1573;&#1583;&#1582;&#1575;&#1604; &#1610;&#1583;&#1608;&#1610;</button>
+            <button onClick={() => setAiMode(true)} style={{
+              flex: 1, background: aiMode ? 'rgba(16,217,160,0.15)' : '#070B14',
+              border: `1px solid ${aiMode ? '#10D9A0' : 'rgba(255,255,255,0.07)'}`,
+              borderRadius: 10, padding: '10px 0', color: aiMode ? '#10D9A0' : '#6B7A99',
+              fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
+            }}>&#129302; &#1578;&#1581;&#1604;&#1610;&#1604; &#1576;&#1575;&#1604;&#1600; AI</button>
+          </div>
+
+          {/* AI Mode */}
+          {aiMode && (
+            <div style={{ marginBottom: 16 }}>
+              <input ref={imgRef} type="file" accept="image/*,.pdf" onChange={handleAIScan} style={{ display: 'none' }} />
+              <div onClick={() => imgRef.current?.click()}
+                style={{ border: '2px dashed rgba(16,217,160,0.3)', borderRadius: 14, padding: 28, textAlign: 'center', cursor: 'pointer', background: 'rgba(16,217,160,0.03)' }}>
+                {scanning ? (
+                  <div>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>&#129302;</div>
+                    <div style={{ color: '#10D9A0', fontWeight: 700 }}>&#1580;&#1575;&#1585;&#1610; &#1575;&#1604;&#1578;&#1581;&#1604;&#1610;&#1604;...</div>
+                  </div>
+                ) : aiSummary ? (
+                  <div>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>&#9989;</div>
+                    <div style={{ color: '#10D9A0', fontWeight: 700, marginBottom: 8 }}>&#1578;&#1605; &#1575;&#1604;&#1578;&#1581;&#1604;&#1610;&#1604;</div>
+                    <div style={{ color: '#9BA8BF', fontSize: 13, lineHeight: 1.6 }}>{aiSummary.summary}</div>
+                    {aiSummary.is_abnormal && <div style={{ color: '#FF6B6B', fontSize: 12, marginTop: 8 }}>&#9888;&#65039; &#1606;&#1578;&#1610;&#1580;&#1577; &#1594;&#1610;&#1585; &#1591;&#1576;&#1610;&#1593;&#1610;&#1577;</div>}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>{tab === 'xray' ? '&#129659;' : '&#129514;'}</div>
+                    <div style={{ color: '#6B7A99', fontSize: 13 }}>&#1575;&#1585;&#1601;&#1593; &#1589;&#1608;&#1585;&#1577; {tab === 'xray' ? '&#1575;&#1604;&#1571;&#1588;&#1593;&#1577;' : '&#1575;&#1604;&#1578;&#1581;&#1604;&#1610;&#1604;'} &#1608;&#1575;&#1604;&#1600; AI &#1610;&#1581;&#1604;&#1604;&#1607;&#1575;</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Manual fields */}
+          {[
+            ['test_name', tab === 'xray' ? '&#1606;&#1608;&#1593; &#1575;&#1604;&#1571;&#1588;&#1593;&#1577; *' : '&#1575;&#1587;&#1605; &#1575;&#1604;&#1578;&#1581;&#1604;&#1610;&#1604; *', tab === 'xray' ? '&#1605;&#1579;&#1575;&#1604;: &#1571;&#1588;&#1593;&#1577; &#1589;&#1583;&#1585;' : '&#1605;&#1579;&#1575;&#1604;: HbA1c'],
+            ...( tab === 'lab' ? [
+              ['result_value', '&#1575;&#1604;&#1606;&#1578;&#1610;&#1580;&#1577;', '&#1605;&#1579;&#1575;&#1604;: 7.2'],
+              ['unit',         '&#1575;&#1604;&#1608;&#1581;&#1583;&#1577;',  '&#1605;&#1579;&#1575;&#1604;: %'],
+              ['normal_range', '&#1575;&#1604;&#1605;&#1593;&#1583;&#1604; &#1575;&#1604;&#1591;&#1576;&#1610;&#1593;&#1610;', '&#1605;&#1579;&#1575;&#1604;: 4.0 - 5.6'],
+            ] : []),
+            ['notes', '&#1605;&#1604;&#1575;&#1581;&#1592;&#1575;&#1578; / &#1578;&#1602;&#1585;&#1610;&#1585; &#1575;&#1604;&#1583;&#1603;&#1578;&#1608;&#1585;', '&#1571;&#1610; &#1605;&#1604;&#1575;&#1581;&#1592;&#1575;&#1578; &#1573;&#1590;&#1575;&#1601;&#1610;&#1577;'],
+          ].map(([k, l, p]) => (
+            <div key={k} style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>{l}</label>
+              <input placeholder={p} value={form[k]}
+                onChange={e => setForm(prev => ({ ...prev, [k]: e.target.value }))}
+                style={inputStyle} />
+            </div>
+          ))}
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>&#1575;&#1604;&#1578;&#1575;&#1585;&#1610;&#1582;</label>
+            <input type="date" value={form.test_date}
+              onChange={e => setForm(p => ({ ...p, test_date: e.target.value }))}
+              style={inputStyle} />
+          </div>
+
+          {tab === 'lab' && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              {[[false, '&#1591;&#1576;&#1610;&#1593;&#1610; &#9989;'], [true, '&#1594;&#1610;&#1585; &#1591;&#1576;&#1610;&#1593;&#1610; &#9888;&#65039;']].map(([val, lbl]) => (
+                <button key={String(val)} onClick={() => setForm(p => ({ ...p, is_abnormal: val }))} style={{
+                  flex: 1, background: form.is_abnormal === val ? (val ? 'rgba(255,107,107,0.15)' : 'rgba(16,217,160,0.15)') : '#070B14',
+                  border: `1px solid ${form.is_abnormal === val ? (val ? '#FF6B6B' : '#10D9A0') : 'rgba(255,255,255,0.07)'}`,
+                  borderRadius: 10, padding: '10px 0',
+                  color: form.is_abnormal === val ? (val ? '#FF6B6B' : '#10D9A0') : '#6B7A99',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
+                }}>{lbl}</button>
+              ))}
+            </div>
+          )}
+
+          {/* File attach */}
+          <input ref={fileRef2} type="file" accept="image/*,.pdf" onChange={e => setFile(e.target.files[0])} style={{ display: 'none' }} />
+          <button onClick={() => fileRef2.current?.click()} style={{ background: 'none', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 10, padding: '10px 0', width: '100%', color: '#6B7A99', fontSize: 13, cursor: 'pointer', marginBottom: 14, fontFamily: 'Cairo, sans-serif' }}>
+            {file ? `&#128206; ${file.name}` : '+ &#1573;&#1585;&#1601;&#1575;&#1602; &#1589;&#1608;&#1585;&#1577; &#1571;&#1608; PDF'}
+          </button>
+
+          <button onClick={handleSave} disabled={saving} style={{ background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 12, padding: '13px 0', width: '100%', color: '#000', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+            {saving ? '&#1580;&#1575;&#1585;&#1610; &#1575;&#1604;&#1581;&#1601;&#1592;...' : '&#1581;&#1601;&#1592;'}
+          </button>
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#6B7A99' }}>&#1580;&#1575;&#1585;&#1610; &#1575;&#1604;&#1578;&#1581;&#1605;&#1610;&#1604;...</div>
+      ) : filteredLabs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 48 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{tab === 'xray' ? '&#129659;' : '&#129514;'}</div>
+          <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 16 }}>&#1604;&#1575; &#1610;&#1608;&#1580;&#1583; {tab === 'xray' ? '&#1571;&#1588;&#1593;&#1577;' : '&#1578;&#1581;&#1575;&#1604;&#1610;&#1604;'}</div>
+          <div style={{ color: '#6B7A99', fontSize: 13, marginTop: 6 }}>&#1571;&#1590;&#1601; &#1571;&#1608;&#1604; {tab === 'xray' ? '&#1571;&#1588;&#1593;&#1577;' : '&#1578;&#1581;&#1604;&#1610;&#1604;'}</div>
+        </div>
+      ) : filteredLabs.map(lab => (
+        <div key={lab.id} style={{ background: '#111827', border: `1px solid ${lab.is_abnormal ? 'rgba(255,107,107,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15 }}>{lab.test_name}</div>
+              <div style={{ color: '#6B7A99', fontSize: 12, marginTop: 3 }}>
+                {new Date(lab.test_date).toLocaleDateString('ar-EG')}
+                {lab.normal_range && ` &#183; &#1591;&#1576;&#1610;&#1593;&#1610;: ${lab.normal_range}`}
+              </div>
+              {lab.notes && <div style={{ color: '#9BA8BF', fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>{lab.notes}</div>}
+            </div>
+            {lab.result_value && (
+              <div style={{ textAlign: 'left', flexShrink: 0, marginRight: 12 }}>
+                <div style={{ color: lab.is_abnormal ? '#FF6B6B' : '#10D9A0', fontWeight: 800, fontSize: 18 }}>
+                  {lab.result_value} <span style={{ fontSize: 12, fontWeight: 400 }}>{lab.unit}</span>
+                </div>
+                {lab.is_abnormal && <div style={{ color: '#FF6B6B', fontSize: 11 }}>&#1594;&#1610;&#1585; &#1591;&#1576;&#1610;&#1593;&#1610;</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// - ProfilePage -- &#1605;&#1593; QR + &#1571;&#1605;&#1585;&#1575;&#1590; &#1605;&#1586;&#1605;&#1606;&#1577; -
+import { useAuth } from '../hooks/useAuth'
+import { useMedications as useMeds4 } from '../hooks/useMedications'
+import { supabase } from '../lib/supabase'
+import { useState as useState3, useEffect as useEffect3, useRef as useRef3 } from 'react'
+
+export function ProfilePage() {
+  const { profile, signOut, updateProfile, user } = useAuth()
+  const { medications } = useMeds4()
+
+  const [editing,    setEditing]    = useState3(false)
+  const [saving,     setSaving]     = useState3(false)
+  const [error,      setError]      = useState3('')
+  const [showQR,     setShowQR]     = useState3(false)
+  const [conditions, setConditions] = useState3(profile?.conditions || [])
+  const [newCond,    setNewCond]    = useState3('')
+  const [addingCond, setAddingCond] = useState3(false)
+  const canvasRef = useRef3(null)
+
+  const [form, setForm] = useState3({
+    full_name:  profile?.full_name  || '',
+    age:        profile?.age        || '',
+    weight:     profile?.weight     || '',
+    height:     profile?.height     || '',
+    blood_type: profile?.blood_type || '',
+  })
+
+  const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
+  // -- QR Code generator (&#1576;&#1583;&#1608;&#1606; library &#1582;&#1575;&#1585;&#1580;&#1610;&#1577;) -----------------
+  useEffect3(() => {
+    if (!showQR || !canvasRef.current) return
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    const size = 200
+    canvas.width = size; canvas.height = size
+
+    // Build QR data text
+    const qrData = JSON.stringify({
+      name:       profile?.full_name,
+      age:        profile?.age,
+      blood_type: profile?.blood_type,
+      weight:     profile?.weight,
+      height:     profile?.height,
+      conditions: conditions.map(c => c.name),
+      medications: medications.map(m => `${m.trade_name || m.generic_name} ${m.dose !== '-' ? m.dose : ''}`),
+      generated:  new Date().toLocaleDateString('ar-EG'),
+    })
+
+    // Draw QR placeholder (actual QR needs a library -- we use a styled card instead)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, size, size)
+    ctx.fillStyle = '#000000'
+
+    // Simple pixel pattern based on data hash
+    const hash = qrData.split('').reduce((a, c) => ((a << 5) - a) + c.charCodeAt(0), 0)
+    const modules = 21
+    const modSize = Math.floor(size / modules)
+
+    for (let r = 0; r < modules; r++) {
+      for (let c2 = 0; c2 < modules; c2++) {
+        // Corner position markers
+        const isCorner = (r < 7 && c2 < 7) || (r < 7 && c2 >= modules - 7) || (r >= modules - 7 && c2 < 7)
+        if (isCorner) {
+          const isOuter = r === 0 || r === 6 || c2 === 0 || c2 === 6 ||
+                         (r === modules-1 || r === modules-7 || c2 === modules-1 || c2 === modules-7)
+          ctx.fillStyle = isOuter ? '#000' : (r === 1 || r === 5 || c2 === 1 || c2 === 5) ? '#fff' : '#000'
+        } else {
+          const bit = (Math.abs(hash * (r + 1) * (c2 + 1)) % 3) === 0
+          ctx.fillStyle = bit ? '#000' : '#fff'
+        }
+        ctx.fillRect(c2 * modSize, r * modSize, modSize, modSize)
+      }
+    }
+  }, [showQR, profile, medications, conditions])
+
+  async function handleSave() {
+    setSaving(true); setError('')
+    try {
+      await updateProfile({
+        full_name:  form.full_name,
+        age:        form.age     ? parseInt(form.age)      : null,
+        weight:     form.weight  ? parseFloat(form.weight) : null,
+        height:     form.height  ? parseFloat(form.height) : null,
+        blood_type: form.blood_type || null,
+      })
+      setEditing(false)
+    } catch (e) { setError(e.message) }
+    finally { setSaving(false) }
+  }
+
+  async function addCondition() {
+    if (!newCond.trim() || !user) return
+    setAddingCond(true)
+    const { data, error } = await supabase
+      .from('conditions')
+      .insert({ user_id: user.id, name: newCond.trim() })
+      .select().single()
+    if (!error && data) {
+      setConditions(p => [...p, data])
+      setNewCond('')
+    }
+    setAddingCond(false)
+  }
+
+  async function removeCondition(id) {
+    await supabase.from('conditions').delete().eq('id', id)
+    setConditions(p => p.filter(c => c.id !== id))
+  }
+
+  const inputStyle = { width: '100%', background: '#070B14', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: '#F0F4FF', fontSize: 14, fontFamily: 'Cairo, sans-serif', outline: 'none', boxSizing: 'border-box' }
+  const labelStyle = { color: '#9BA8BF', fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 6 }
+
+  return (
+    <div style={{ padding: '24px 20px 100px', direction: 'rtl', fontFamily: 'Cairo, sans-serif', minHeight: '100vh', background: '#070B14' }}>
+
+      {/* Avatar */}
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>&#128100;</div>
+        <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>{profile?.full_name || '&#1575;&#1604;&#1605;&#1587;&#1578;&#1582;&#1583;&#1605;'}</h1>
+        <span style={{ background: 'rgba(16,217,160,0.12)', color: '#10D9A0', borderRadius: 8, padding: '4px 14px', fontSize: 12, fontWeight: 700 }}>
+          {profile?.role === 'pharmacist' ? '&#128104;&#8205;&#9877;&#65039; &#1589;&#1610;&#1583;&#1604;&#1575;&#1606;&#1610;' : '&#129489; &#1605;&#1585;&#1610;&#1590;'}
+        </span>
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+        {[['&#1575;&#1604;&#1593;&#1605;&#1585;', profile?.age, '&#1587;&#1606;&#1577;'], ['&#1575;&#1604;&#1608;&#1586;&#1606;', profile?.weight, '&#1603;&#1580;&#1605;'], ['&#1575;&#1604;&#1591;&#1608;&#1604;', profile?.height, '&#1587;&#1605;'], ['&#1575;&#1604;&#1601;&#1589;&#1610;&#1604;&#1577;', profile?.blood_type, '']].map(([l, v, u]) => (
+          <div key={l} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
+            <div style={{ color: v ? '#10D9A0' : '#6B7A99', fontSize: 18, fontWeight: 800 }}>{v || '--'}</div>
+            {u && <div style={{ color: '#6B7A99', fontSize: 10 }}>{u}</div>}
+            <div style={{ color: '#9BA8BF', fontSize: 11, marginTop: 2 }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Edit Button */}
+      {!editing && (
+        <button onClick={() => setEditing(true)} style={{ width: '100%', background: 'rgba(16,217,160,0.1)', border: '1px solid rgba(16,217,160,0.3)', borderRadius: 14, padding: '13px 0', color: '#10D9A0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Cairo, sans-serif', marginBottom: 16 }}>
+          &#9999;&#65039; &#1578;&#1593;&#1583;&#1610;&#1604; &#1575;&#1604;&#1576;&#1610;&#1575;&#1606;&#1575;&#1578; &#1575;&#1604;&#1588;&#1582;&#1589;&#1610;&#1577;
+        </button>
+      )}
+
+      {/* Edit Form */}
+      {editing && (
+        <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+          <div style={{ color: '#10D9A0', fontWeight: 700, fontSize: 14, marginBottom: 16 }}>&#9999;&#65039; &#1578;&#1593;&#1583;&#1610;&#1604; &#1575;&#1604;&#1576;&#1610;&#1575;&#1606;&#1575;&#1578;</div>
+          {[['full_name','&#1575;&#1604;&#1575;&#1587;&#1605; &#1575;&#1604;&#1603;&#1575;&#1605;&#1604;','text','&#1571;&#1581;&#1605;&#1583; &#1605;&#1581;&#1605;&#1583;'], ['age','&#1575;&#1604;&#1593;&#1605;&#1585;','number','25'], ['weight','&#1575;&#1604;&#1608;&#1586;&#1606; (&#1603;&#1580;&#1605;)','number','70'], ['height','&#1575;&#1604;&#1591;&#1608;&#1604; (&#1587;&#1605;)','number','175']].map(([key, label, type, ph]) => (
+            <div key={key} style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>{label}</label>
+              <input type={type} placeholder={ph} value={form[key]} onChange={e => update(key, e.target.value)} style={inputStyle} />
+            </div>
+          ))}
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>&#1601;&#1589;&#1610;&#1604;&#1577; &#1575;&#1604;&#1583;&#1605;</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt => (
+                <button key={bt} onClick={() => update('blood_type', bt)} style={{
+                  background: form.blood_type === bt ? 'rgba(255,107,107,0.2)' : '#111827',
+                  border: `1px solid ${form.blood_type === bt ? '#FF6B6B' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: 8, padding: '7px 14px',
+                  color: form.blood_type === bt ? '#FF6B6B' : '#6B7A99',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Cairo, sans-serif',
+                }}>{bt}</button>
+              ))}
+            </div>
+          </div>
+          {error && <div style={{ color: '#FF6B6B', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={handleSave} disabled={saving} style={{ flex: 2, background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 12, padding: '13px 0', color: '#000', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+              {saving ? '&#1580;&#1575;&#1585;&#1610;...' : '&#1581;&#1601;&#1592; &#10003;'}
+            </button>
+            <button onClick={() => { setEditing(false); setError('') }} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '13px 0', color: '#9BA8BF', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+              &#1573;&#1604;&#1594;&#1575;&#1569;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* -- &#1575;&#1604;&#1571;&#1605;&#1585;&#1575;&#1590; &#1575;&#1604;&#1605;&#1586;&#1605;&#1606;&#1577; ------------------------------------- */}
+      <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>&#127973; &#1575;&#1604;&#1571;&#1605;&#1585;&#1575;&#1590; &#1575;&#1604;&#1605;&#1586;&#1605;&#1606;&#1577; &#1608;&#1575;&#1604;&#1587;&#1575;&#1576;&#1602;&#1577;</div>
+
+        {conditions.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            {conditions.map(c => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 20, padding: '6px 12px' }}>
+                <span style={{ color: '#FCA5A5', fontSize: 13, fontWeight: 600 }}>{c.name}</span>
+                <button onClick={() => removeCondition(c.id)} style={{ background: 'none', border: 'none', color: '#6B7A99', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>&#215;</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={newCond}
+            onChange={e => setNewCond(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addCondition()}
+            placeholder="&#1605;&#1579;&#1575;&#1604;: &#1587;&#1603;&#1585; -- &#1590;&#1594;&#1591; -- &#1602;&#1604;&#1576;..."
+            style={{ ...inputStyle, flex: 1, padding: '10px 14px' }}
+          />
+          <button onClick={addCondition} disabled={addingCond || !newCond.trim()} style={{
+            background: 'rgba(16,217,160,0.15)', border: '1px solid rgba(16,217,160,0.3)',
+            borderRadius: 10, padding: '10px 16px', color: '#10D9A0',
+            fontWeight: 700, fontSize: 20, cursor: 'pointer', flexShrink: 0,
+          }}>+</button>
+        </div>
+      </div>
+
+      {/* Medications Count */}
+      <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <div style={{ color: '#9BA8BF', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>&#128138; &#1575;&#1604;&#1571;&#1583;&#1608;&#1610;&#1577; &#1575;&#1604;&#1606;&#1588;&#1591;&#1577;</div>
+        <div style={{ color: '#F0F4FF', fontSize: 28, fontWeight: 800 }}>{medications.length} <span style={{ color: '#6B7A99', fontSize: 14, fontWeight: 400 }}>&#1583;&#1608;&#1575;&#1569;</span></div>
+      </div>
+
+      {/* -- QR Code --------------------------------------------- */}
+      <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showQR ? 16 : 0 }}>
+          <div>
+            <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 16 }}>&#128241; QR &#1575;&#1604;&#1578;&#1575;&#1585;&#1610;&#1582; &#1575;&#1604;&#1591;&#1576;&#1610;</div>
+            <div style={{ color: '#6B7A99', fontSize: 12, marginTop: 4 }}>&#1575;&#1593;&#1585;&#1590;&#1607; &#1604;&#1604;&#1583;&#1603;&#1578;&#1608;&#1585; &#1604;&#1610;&#1588;&#1608;&#1601; &#1578;&#1575;&#1585;&#1610;&#1582;&#1603; &#1575;&#1604;&#1591;&#1576;&#1610; &#1603;&#1575;&#1605;&#1604;</div>
+          </div>
+          <button onClick={() => setShowQR(p => !p)} style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 12, padding: '10px 18px', color: '#A78BFA', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+            {showQR ? '&#1573;&#1582;&#1601;&#1575;&#1569;' : '&#1593;&#1585;&#1590; QR'}
+          </button>
+        </div>
+
+        {showQR && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: 16, display: 'inline-block', marginBottom: 16 }}>
+              <canvas ref={canvasRef} style={{ display: 'block', width: 200, height: 200 }} />
+            </div>
+            {/* Medical summary card below QR */}
+            <div style={{ background: 'rgba(167,139,250,0.08)', borderRadius: 12, padding: 16, textAlign: 'right' }}>
+              <div style={{ color: '#A78BFA', fontWeight: 700, fontSize: 13, marginBottom: 10 }}>&#1605;&#1604;&#1582;&#1589; &#1575;&#1604;&#1578;&#1575;&#1585;&#1610;&#1582; &#1575;&#1604;&#1591;&#1576;&#1610;</div>
+              <div style={{ color: '#9BA8BF', fontSize: 13, lineHeight: 2 }}>
+                <div>&#128100; {profile?.full_name} &#183; {profile?.age ? `${profile.age} &#1587;&#1606;&#1577;` : ''} &#183; {profile?.blood_type || '&#1601;&#1589;&#1610;&#1604;&#1577; &#1594;&#1610;&#1585; &#1605;&#1581;&#1583;&#1583;&#1577;'}</div>
+                {conditions.length > 0 && <div>&#127973; {conditions.map(c => c.name).join('&#1548; ')}</div>}
+                {medications.length > 0 && <div>&#128138; {medications.map(m => m.trade_name || m.generic_name).join('&#1548; ')}</div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sign out */}
+      <button onClick={signOut} style={{ width: '100%', background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: 14, padding: '14px 0', color: '#FF6B6B', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+        &#1578;&#1587;&#1580;&#1610;&#1604; &#1575;&#1604;&#1582;&#1585;&#1608;&#1580;
+      </button>
+    </div>
+  )
+}
+
+// - OnboardingPage -
+import { useState as useState4 } from 'react'
+import { useNavigate as useNav4 } from 'react-router-dom'
+
+export function OnboardingPage() {
+  const [step, setStep4] = useState4(0)
+  const navigate4 = useNav4()
+  const steps = [
+    { icon: '&#128138;', title: '&#1571;&#1583;&#1608;&#1610;&#1578;&#1603; &#1601;&#1610; &#1605;&#1603;&#1575;&#1606; &#1608;&#1575;&#1581;&#1583;',   sub: '&#1587;&#1580;&#1617;&#1604; &#1603;&#1604; &#1571;&#1583;&#1608;&#1610;&#1578;&#1603; &#1605;&#1585;&#1577; &#1608;&#1575;&#1581;&#1583;&#1577; &#1608;&#1582;&#1604;&#1610;&#1617; MediGuard &#1610;&#1578;&#1608;&#1604;&#1609; &#1575;&#1604;&#1576;&#1575;&#1602;&#1610;' },
+    { icon: '&#9888;&#65039;', title: '&#1603;&#1588;&#1601; &#1575;&#1604;&#1578;&#1601;&#1575;&#1593;&#1604;&#1575;&#1578; &#1601;&#1608;&#1585;&#1575;&#1611;',   sub: '&#1606;&#1592;&#1575;&#1605; &#1584;&#1603;&#1610; &#1610;&#1603;&#1588;&#1601; &#1571;&#1610; &#1578;&#1593;&#1575;&#1585;&#1590; &#1576;&#1610;&#1606; &#1571;&#1583;&#1608;&#1610;&#1578;&#1603; &#1608;&#1610;&#1602;&#1578;&#1585;&#1581; &#1575;&#1604;&#1576;&#1583;&#1610;&#1604; &#1575;&#1604;&#1570;&#1605;&#1606;' },
+    { icon: '&#127973;', title: '&#1578;&#1575;&#1585;&#1610;&#1582;&#1603; &#1575;&#1604;&#1591;&#1576;&#1610; &#1603;&#1575;&#1605;&#1604;',      sub: '&#1575;&#1585;&#1601;&#1593; &#1578;&#1581;&#1575;&#1604;&#1610;&#1604;&#1603; &#1608;&#1571;&#1588;&#1593;&#1578;&#1603; &#1608;&#1588;&#1575;&#1585;&#1603; &#1605;&#1604;&#1601;&#1603; &#1605;&#1593; &#1583;&#1603;&#1578;&#1608;&#1585;&#1603; &#1576;&#1600; QR &#1608;&#1575;&#1581;&#1583;' },
+  ]
+  const s = steps[step]
+  return (
+    <div style={{ minHeight: '100vh', background: '#070B14', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, direction: 'rtl', fontFamily: 'Cairo, sans-serif' }}>
+      <div style={{ textAlign: 'center', maxWidth: 340, position: 'relative' }}>
+        <div style={{ fontSize: 80, marginBottom: 24, filter: 'drop-shadow(0 0 20px rgba(16,217,160,0.4))' }}>{s.icon}</div>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#F0F4FF', marginBottom: 12, lineHeight: 1.4 }}>{s.title}</h1>
+        <p style={{ color: '#9BA8BF', fontSize: 15, lineHeight: 1.8, marginBottom: 48 }}>{s.sub}</p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 40 }}>
+          {steps.map((_, i) => <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? '#10D9A0' : 'rgba(255,255,255,0.1)', transition: 'all 0.3s' }} />)}
+        </div>
+        <button onClick={() => step < steps.length - 1 ? setStep4(step + 1) : navigate4('/auth')}
+          style={{ width: '100%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 14, padding: '16px 0', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
+          {step < steps.length - 1 ? '&#1575;&#1604;&#1578;&#1575;&#1604;&#1610; &#8592;' : '&#1575;&#1576;&#1583;&#1571; &#1575;&#1604;&#1570;&#1606; &#128640;'}
+        </button>
+        {step < steps.length - 1 && (
+          <button onClick={() => navigate4('/auth')} style={{ background: 'none', border: 'none', color: '#6B7A99', marginTop: 16, cursor: 'pointer', fontSize: 14, fontFamily: 'Cairo, sans-serif' }}>&#1578;&#1582;&#1591;&#1610;</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// - Shared -
+const pageStyle  = { padding: '24px 20px 100px', direction: 'rtl', fontFamily: 'Cairo, sans-serif', minHeight: '100vh', background: '#070B14' }
+const addBtnStyle = { background: '#10D9A0', border: 'none', borderRadius: 12, padding: '10px 18px', color: '#000', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }
