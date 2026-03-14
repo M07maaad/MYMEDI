@@ -1,5 +1,10 @@
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMedications } from '../hooks/useMedications'
+import { useLabResults } from '../hooks/useLabResults'
+import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
+import { fileToBase64 } from '../lib/gemini'
 import { Card, Badge, EmptyState, LoadingSpinner, PageHeader } from '../components/UI'
 
 export function MedicationsPage() {
@@ -72,7 +77,7 @@ const addBtnStyle = { background: '#10D9A0', border: 'none', borderRadius: 12, p
 
 
 export function SchedulePage() {
-  const { medications, logDose, fetchDoseLogsToday } = useMeds2()
+  const { medications, logDose, fetchDoseLogsToday } = useMedications()
   const [doseLogs, setDoseLogs] = useState([])
   const periodIcons = { صبح: '🌅', ظهر: '☀️', مساء: '🌤️', ليل: '🌙' }
 
@@ -130,11 +135,9 @@ export function SchedulePage() {
 }
 
 // - InteractionsPage -
-import { useMedications as useMeds3 } from '../hooks/useMedications'
-import { Card as C2, Badge as B2 } from '../components/UI'
 
 export function InteractionsPage() {
-  const { medications, interactions } = useMeds3()
+  const { medications, interactions } = useMedications()
   const safeNames = new Set([...interactions.flatMap(i => [i.drug1_name, i.drug2_name])])
   const safeMeds  = medications.filter(m => !safeNames.has(m.generic_name))
 
@@ -144,18 +147,18 @@ export function InteractionsPage() {
       <p style={{ color: '#6B7A99', fontSize: 13, marginBottom: 24 }}>فحص تلقائي لكل أدويتك</p>
 
       {interactions.length === 0 ? (
-        <C2 style={{ textAlign: 'center', padding: 48 }}>
+        <Card style={{ textAlign: 'center', padding: 48 }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
           <div style={{ color: '#10D9A0', fontWeight: 800, fontSize: 18 }}>لا توجد تفاعلات</div>
           <div style={{ color: '#6B7A99', fontSize: 14, marginTop: 8 }}>أدويتك آمنة مع بعضها</div>
-        </C2>
+        </Card>
       ) : interactions.map((inter, i) => (
-        <C2 key={i} glow="#FF6B6B" style={{ marginBottom: 16, background: 'rgba(255,107,107,0.06)' }}>
+        <Card key={i} glow="#FF6B6B" style={{ marginBottom: 16, background: 'rgba(255,107,107,0.06)' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
             <span style={{ fontSize: 28 }}>⚠️</span>
             <div>
               <div style={{ color: '#FF6B6B', fontWeight: 800, fontSize: 16 }}>{inter.drug1_name} + {inter.drug2_name}</div>
-              <B2 label={`خطورة ${inter.severity}`} color={inter.severity === 'خطير' ? '#FF6B6B' : inter.severity === 'متوسط' ? '#FBBF24' : '#38BDF8'} />
+              <Badge label={`خطورة ${inter.severity}`} color={inter.severity === 'خطير' ? '#FF6B6B' : inter.severity === 'متوسط' ? '#FBBF24' : '#38BDF8'} />
             </div>
           </div>
           <p style={{ color: '#9BA8BF', fontSize: 14, lineHeight: 1.8, margin: '0 0 14px' }}>{inter.description}</p>
@@ -165,20 +168,20 @@ export function InteractionsPage() {
               <div style={{ color: '#9BA8BF', fontSize: 13 }}>{inter.alternative}</div>
             </div>
           )}
-        </C2>
+        </Card>
       ))}
 
       {safeMeds.length > 0 && (
         <>
           <p style={{ color: '#6B7A99', fontSize: 12, fontWeight: 700, margin: '24px 0 12px' }}>الأدوية الآمنة ✅</p>
           {safeMeds.map(med => (
-            <C2 key={med.id} style={{ marginBottom: 10 }}>
+            <Card key={med.id} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${med.color}20`, border: `2px solid ${med.color}50`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>💊</div>
                 <div style={{ flex: 1, color: '#F0F4FF', fontWeight: 700 }}>{med.trade_name || med.generic_name}</div>
-                <B2 label="آمن ✓" color="#10D9A0" />
+                <Badge label="آمن ✓" color="#10D9A0" />
               </div>
-            </C2>
+            </Card>
           ))}
         </>
       )}
@@ -187,26 +190,25 @@ export function InteractionsPage() {
 }
 
 // - LabsPage -- تحاليل + أشعة -
-import { useRef as useRef2, useState as useState2 } from 'react'
 import { useLabResults } from '../hooks/useLabResults'
 import { fileToBase64 } from '../lib/gemini'
 
 export function LabsPage() {
   const { labs, loading, addLabResult } = useLabResults()
-  const [tab,      setTab]      = useState2('lab')   // 'lab' | 'xray'
-  const [showForm, setShowForm] = useState2(false)
-  const [aiMode,   setAiMode]   = useState2(false)
-  const [scanning, setScanning] = useState2(false)
-  const [aiSummary,setAiSummary]= useState2(null)
-  const [form, setForm] = useState2({
+  const [tab,      setTab]      = useState('lab')   // 'lab' | 'xray'
+  const [showForm, setShowForm] = useState(false)
+  const [aiMode,   setAiMode]   = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [aiSummary,setAiSummary]= useState(null)
+  const [form, setForm] = useState({
     test_name: '', result_value: '', unit: '', normal_range: '',
     test_date: new Date().toISOString().split('T')[0],
     is_abnormal: false, notes: '', type: 'lab',
   })
-  const [file,   setFile]   = useState2(null)
-  const [saving, setSaving] = useState2(false)
-  const fileRef2 = useRef2()
-  const imgRef   = useRef2()
+  const [file,   setFile]   = useState(null)
+  const [saving, setSaving] = useState(false)
+  const fileRef2 = useRef()
+  const imgRef   = useRef()
 
   const filteredLabs = labs.filter(l => (l.type || 'lab') === tab)
 
@@ -442,25 +444,21 @@ export function LabsPage() {
 }
 
 // - ProfilePage -- مع QR + أمراض مزمنة -
-import { useAuth } from '../hooks/useAuth'
-import { useMedications as useMeds4 } from '../hooks/useMedications'
-import { supabase } from '../lib/supabase'
-import { useState as useState3, useEffect as useEffect3, useRef as useRef3 } from 'react'
 
 export function ProfilePage() {
   const { profile, signOut, updateProfile, user } = useAuth()
-  const { medications } = useMeds4()
+  const { medications } = useMedications()
 
-  const [editing,    setEditing]    = useState3(false)
-  const [saving,     setSaving]     = useState3(false)
-  const [error,      setError]      = useState3('')
-  const [showQR,     setShowQR]     = useState3(false)
-  const [conditions, setConditions] = useState3(profile?.conditions || [])
-  const [newCond,    setNewCond]    = useState3('')
-  const [addingCond, setAddingCond] = useState3(false)
-  const canvasRef = useRef3(null)
+  const [editing,    setEditing]    = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const [error,      setError]      = useState('')
+  const [showQR,     setShowQR]     = useState(false)
+  const [conditions, setConditions] = useState(profile?.conditions || [])
+  const [newCond,    setNewCond]    = useState('')
+  const [addingCond, setAddingCond] = useState(false)
+  const canvasRef = useRef(null)
 
-  const [form, setForm] = useState3({
+  const [form, setForm] = useState({
     full_name:  profile?.full_name  || '',
     age:        profile?.age        || '',
     weight:     profile?.weight     || '',
@@ -471,7 +469,7 @@ export function ProfilePage() {
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
   // -- QR Code generator (بدون library خارجية) -----------------
-  useEffect3(() => {
+  useEffect(() => {
     if (!showQR || !canvasRef.current) return
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
@@ -696,12 +694,10 @@ export function ProfilePage() {
 }
 
 // - OnboardingPage -
-import { useState as useState4 } from 'react'
-import { useNavigate as useNav4 } from 'react-router-dom'
 
 export function OnboardingPage() {
-  const [step, setStep4] = useState4(0)
-  const navigate4 = useNav4()
+  const [step, setStep4] = useState(0)
+  const navigate4 = useNavigate()
   const steps = [
     { icon: '💊', title: 'أدويتك في مكان واحد',   sub: 'سجّل كل أدويتك مرة واحدة وخليّ MediGuard يتولى الباقي' },
     { icon: '⚠️', title: 'كشف التفاعلات فوراً',   sub: 'نظام ذكي يكشف أي تعارض بين أدويتك ويقترح البديل الآمن' },
@@ -717,7 +713,7 @@ export function OnboardingPage() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 40 }}>
           {steps.map((_, i) => <div key={i} style={{ width: i === step ? 24 : 8, height: 8, borderRadius: 4, background: i === step ? '#10D9A0' : 'rgba(255,255,255,0.1)', transition: 'all 0.3s' }} />)}
         </div>
-        <button onClick={() => step < steps.length - 1 ? setStep4(step + 1) : navigate4('/auth')}
+        <button onClick={() => step < steps.length - 1 ? setStep(step + 1) : navigate4('/auth')}
           style={{ width: '100%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 14, padding: '16px 0', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'Cairo, sans-serif' }}>
           {step < steps.length - 1 ? 'التالي ←' : 'ابدأ الآن 🚀'}
         </button>
