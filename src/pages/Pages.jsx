@@ -30,7 +30,7 @@ action={<button onClick={() => navigate(’/medications/add’)} style={addBtnSt
               <div>
                 <div style={{ color: '#F0F4FF', fontWeight: 800, fontSize: 16 }}>{med.trade_name || med.generic_name}</div>
                 <div style={{ color: '#6B7A99', fontSize: 12 }}>
-                  {med.generic_name}{med.dose && med.dose !== '-' ? ` — ${med.dose}` : ''}
+                  {med.generic_name}{med.dose && med.dose !== '-' ? ` -- ${med.dose}` : ''}
                   {med.dosage_form && med.dosage_form !== 'tablet' && (
                     <span style={{ marginRight: 6, background: 'rgba(56,189,248,0.1)', color: '#38BDF8', borderRadius: 4, padding: '1px 6px', fontSize: 11 }}>{med.dosage_form}</span>
                   )}
@@ -115,7 +115,7 @@ return (
 </div>
 <div style={{ flex: 1 }}>
 <div style={{ color: taken ? ‘#6B7A99’ : ‘#F0F4FF’, fontWeight: 700, textDecoration: taken ? ‘line-through’ : ‘none’ }}>{med.trade_name || med.generic_name}</div>
-<div style={{ color: ‘#6B7A99’, fontSize: 12 }}>{med.dose && med.dose !== ‘-’ ? `${med.dose} — ` : ‘’}{med.with_food ? ‘مع الأكل 🍽️’ : ‘على معدة فارغة’}</div>
+<div style={{ color: ‘#6B7A99’, fontSize: 12 }}>{med.dose && med.dose !== ‘-’ ? `${med.dose} -- ` : ‘’}{med.with_food ? ‘مع الأكل 🍽️’ : ‘على معدة فارغة’}</div>
 </div>
 {!taken && (
 <button onClick={() => handleTake(med, period)} style={{ background: ‘rgba(16,217,160,0.12)’, border: ‘1px solid rgba(16,217,160,0.3)’, borderRadius: 10, padding: ‘8px 14px’, color: ‘#10D9A0’, fontSize: 12, fontWeight: 700, cursor: ‘pointer’, fontFamily: ‘Cairo, sans-serif’ }}>أخذت</button>
@@ -191,7 +191,7 @@ return (
 )
 }
 
-// - LabsPage — تحاليل + أشعة -
+// - LabsPage – تحاليل + أشعة -
 import { useRef as useRef2, useState as useState2 } from ‘react’
 import { useLabResults } from ‘../hooks/useLabResults’
 import { fileToBase64 } from ‘../lib/gemini’
@@ -452,7 +452,7 @@ return (
 )
 }
 
-// - ProfilePage — مع QR + أمراض مزمنة -
+// - ProfilePage – مع QR + أمراض مزمنة -
 import { useAuth } from ‘../hooks/useAuth’
 import { useMedications as useMeds4 } from ‘../hooks/useMedications’
 import { supabase } from ‘../lib/supabase’
@@ -481,7 +481,7 @@ blood_type: profile?.blood_type || ‘’,
 
 const update = (k, v) => setForm(p => ({ …p, [k]: v }))
 
-// ── QR Code generator (بدون library خارجية) ─────────────────
+// – QR Code generator (بدون library خارجية) —————–
 useEffect3(() => {
 if (!showQR || !canvasRef.current) return
 const canvas = canvasRef.current
@@ -502,7 +502,7 @@ const qrData = JSON.stringify({
   generated:  new Date().toLocaleDateString('ar-EG'),
 })
 
-// Draw QR placeholder (actual QR needs a library — we use a styled card instead)
+// Draw QR placeholder (actual QR needs a library -- we use a styled card instead)
 ctx.fillStyle = '#FFFFFF'
 ctx.fillRect(0, 0, size, size)
 ctx.fillStyle = '#000000'
@@ -585,7 +585,7 @@ return (
   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
     {[['العمر', profile?.age, 'سنة'], ['الوزن', profile?.weight, 'كجم'], ['الطول', profile?.height, 'سم'], ['الفصيلة', profile?.blood_type, '']].map(([l, v, u]) => (
       <div key={l} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
-        <div style={{ color: v ? '#10D9A0' : '#6B7A99', fontSize: 18, fontWeight: 800 }}>{v || '—'}</div>
+        <div style={{ color: v ? '#10D9A0' : '#6B7A99', fontSize: 18, fontWeight: 800 }}>{v || '--'}</div>
         {u && <div style={{ color: '#6B7A99', fontSize: 10 }}>{u}</div>}
         <div style={{ color: '#9BA8BF', fontSize: 11, marginTop: 2 }}>{l}</div>
       </div>
@@ -635,7 +635,7 @@ return (
     </div>
   )}
 
-  {/* ── الأمراض المزمنة ───────────────────────────────────── */}
+  {/* -- الأمراض المزمنة ------------------------------------- */}
   <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
     <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>🏥 الأمراض المزمنة والسابقة</div>
 
@@ -655,7 +655,7 @@ return (
         value={newCond}
         onChange={e => setNewCond(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && addCondition()}
-        placeholder="مثال: سكر — ضغط — قلب..."
+        placeholder="مثال: سكر -- ضغط -- قلب..."
         style={{ ...inputStyle, flex: 1, padding: '10px 14px' }}
       />
       <button onClick={addCondition} disabled={addingCond || !newCond.trim()} style={{
@@ -672,7 +672,7 @@ return (
     <div style={{ color: '#F0F4FF', fontSize: 28, fontWeight: 800 }}>{medications.length} <span style={{ color: '#6B7A99', fontSize: 14, fontWeight: 400 }}>دواء</span></div>
   </div>
 
-  {/* ── QR Code ───────────────────────────────────────────── */}
+  {/* -- QR Code --------------------------------------------- */}
   <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showQR ? 16 : 0 }}>
       <div>
