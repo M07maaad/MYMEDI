@@ -13,6 +13,7 @@ import { MedicationsPage }  from './pages/Pages'
 import { SchedulePage }     from './pages/Pages'
 import { InteractionsPage } from './pages/Pages'
 import { LabsPage }         from './pages/Pages'
+import { MedicationsPage } from './pages/MedicationsPage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
