@@ -35,7 +35,7 @@ const htmlContent = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ملف ${medicalData.n} الطبي — MediGuard</title>
+<title>ملف ${medicalData.n} الطبي -- MediGuard</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #070B14; color: #F0F4FF; padding: 20px; direction: rtl; }
@@ -63,10 +63,10 @@ const htmlContent = `<!DOCTYPE html>
   <div class="date">آخر تحديث: ${medicalData.d}</div>
 </div>
 <div class="stats">
-  <div class="stat"><div class="stat-val">${medicalData.a || '—'}</div><div class="stat-lbl">العمر</div></div>
-  <div class="stat"><div class="stat-val">${medicalData.w || '—'}</div><div class="stat-lbl">الوزن كجم</div></div>
-  <div class="stat"><div class="stat-val">${medicalData.h || '—'}</div><div class="stat-lbl">الطول سم</div></div>
-  <div class="stat"><div class="stat-val"><span class="blood">${medicalData.b || '—'}</span></div><div class="stat-lbl">فصيلة الدم</div></div>
+  <div class="stat"><div class="stat-val">${medicalData.a || '--'}</div><div class="stat-lbl">العمر</div></div>
+  <div class="stat"><div class="stat-val">${medicalData.w || '--'}</div><div class="stat-lbl">الوزن كجم</div></div>
+  <div class="stat"><div class="stat-val">${medicalData.h || '--'}</div><div class="stat-lbl">الطول سم</div></div>
+  <div class="stat"><div class="stat-val"><span class="blood">${medicalData.b || '--'}</span></div><div class="stat-lbl">فصيلة الدم</div></div>
 </div>
 ${medicalData.c.length > 0 ? `
 <div class="section">
@@ -207,7 +207,7 @@ return (
 <div style={S.page}>
 
 ```
-  {/* ── Avatar + Name ──────────────────────────────────── */}
+  {/* -- Avatar + Name ------------------------------------ */}
   <div style={{ textAlign: 'center', marginBottom: 24 }}>
     <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>👤</div>
     <h1 style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>{profile?.full_name || 'المستخدم'}</h1>
@@ -216,11 +216,11 @@ return (
     </span>
   </div>
 
-  {/* ── Stats Grid ──────────────────────────────────────── */}
+  {/* -- Stats Grid ---------------------------------------- */}
   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
     {[['العمر', profile?.age, 'سنة'], ['الوزن', profile?.weight, 'كجم'], ['الطول', profile?.height, 'سم'], ['الفصيلة', profile?.blood_type, '']].map(([l, v, u]) => (
       <div key={l} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
-        <div style={{ color: v ? '#10D9A0' : '#6B7A99', fontSize: 18, fontWeight: 800 }}>{v || '—'}</div>
+        <div style={{ color: v ? '#10D9A0' : '#6B7A99', fontSize: 18, fontWeight: 800 }}>{v || '--'}</div>
         {u && <div style={{ color: '#6B7A99', fontSize: 10 }}>{u}</div>}
         <div style={{ color: '#9BA8BF', fontSize: 11, marginTop: 2 }}>{l}</div>
       </div>
@@ -270,7 +270,7 @@ return (
     </div>
   )}
 
-  {/* ── الأمراض المزمنة والسابقة ──────────────────────── */}
+  {/* -- الأمراض المزمنة والسابقة ------------------------ */}
   <div style={S.card}>
     <div style={{ color: '#F0F4FF', fontWeight: 700, fontSize: 15, marginBottom: 14 }}>🏥 الأمراض المزمنة والسابقة</div>
 
@@ -286,7 +286,7 @@ return (
       </div>
     ) : (
       <div style={{ color: '#4B5563', fontSize: 13, marginBottom: 14, fontStyle: 'italic' }}>
-        لا يوجد أمراض مسجلة — أضف أمراضك المزمنة أو الجراحات السابقة
+        لا يوجد أمراض مسجلة -- أضف أمراضك المزمنة أو الجراحات السابقة
       </div>
     )}
 
@@ -322,7 +322,7 @@ return (
     </div>
   </div>
 
-  {/* ── Medications Count ─────────────────────────────── */}
+  {/* -- Medications Count ------------------------------- */}
   <div style={S.card}>
     <div style={{ color: '#9BA8BF', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💊 الأدوية النشطة</div>
     <div style={{ color: '#F0F4FF', fontSize: 28, fontWeight: 800 }}>
@@ -330,12 +330,12 @@ return (
     </div>
   </div>
 
-  {/* ── QR التاريخ الطبي ──────────────────────────────── */}
+  {/* -- QR التاريخ الطبي -------------------------------- */}
   <div style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showQR ? 20 : 0 }}>
       <div>
         <div style={{ color: '#A78BFA', fontWeight: 800, fontSize: 16, marginBottom: 4 }}>📱 QR التاريخ الطبي</div>
-        <div style={{ color: '#6B7A99', fontSize: 12 }}>اعرضه للدكتور — فيه ملفك الطبي كامل</div>
+        <div style={{ color: '#6B7A99', fontSize: 12 }}>اعرضه للدكتور -- فيه ملفك الطبي كامل</div>
       </div>
       <button onClick={() => setShowQR(p => !p)} style={{
         background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)',
