@@ -108,7 +108,8 @@ ${medicalData.m.length > 0 ? `
     medicalData.m.slice(0,4).join(', '),
   ].filter(Boolean).join(' | ')
 
-  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(qrData) + '&bgcolor=ffffff&color=1a1a2e&margin=10'
+  // Google Charts QR - أكثر موثوقية
+  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=' + encodeURIComponent(qrData) + '&choe=UTF-8'
 
   return (
     <div style={{ textAlign: 'center' }}>
