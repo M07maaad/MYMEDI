@@ -136,8 +136,25 @@ export function SchedulePage() {
 
 export function InteractionsPage() {
   const { medications, interactions } = useMedications()
-  const safeNames = new Set([...interactions.flatMap(i => [i.drug1_name, i.drug2_name])])
-  const safeMeds  = medications.filter(m => !safeNames.has(m.generic_name))
+
+  // الأدوية اللي فيها تفاعل — بنتحقق من الاسم العلمي والتجاري
+  const interactionDrugNames = new Set(
+    interactions.flatMap(i => [
+      i.drug1_name.toLowerCase(),
+      i.drug2_name.toLowerCase(),
+    ])
+  )
+
+  function drugHasInteraction(med) {
+    const g = (med.generic_name || '').toLowerCase()
+    const t = (med.trade_name   || '').toLowerCase()
+    return [...interactionDrugNames].some(n =>
+      g.includes(n) || n.includes(g.split(' ')[0]) ||
+      t.includes(n) || n.includes(t.split(' ')[0])
+    )
+  }
+
+  const safeMeds = medications.filter(m => !drugHasInteraction(m))
 
   return (
     <div style={pageStyle}>
