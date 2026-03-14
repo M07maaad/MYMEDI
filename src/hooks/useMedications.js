@@ -33,22 +33,16 @@ export function useMedications() {
   async function checkInteractions(meds) {
     if (meds.length < 2) return setInteractions([])
 
-    const names = meds.map(m => m.generic_name).filter(Boolean)
-    const found = []
+    // نجمع كل أسماء الأدوية في array واحدة - call واحد بدل calls كتير
+    const allNames = meds.flatMap(m => [
+      m.generic_name || '',
+      m.trade_name   || '',
+    ]).filter(Boolean)
 
-    for (let i = 0; i < names.length; i++) {
-      for (let j = i + 1; j < names.length; j++) {
-        // بنستخدم الـ function اللي عملناها في Supabase
-        // بتبحث بـ ilike علشان تتعرف على الأسماء بغض النظر عن الحروف
-        const { data } = await supabase
-          .rpc('check_drug_interaction', {
-            drug_a: names[i],
-            drug_b: names[j]
-          })
-        if (data?.length > 0) found.push(...data)
-      }
-    }
-    setInteractions(found)
+    const { data } = await supabase
+      .rpc('check_interactions_bulk', { drug_names: allNames })
+
+    setInteractions(data || [])
   }
 
   async function addMedication(medData) {
