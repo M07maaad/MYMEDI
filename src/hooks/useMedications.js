@@ -33,18 +33,18 @@ export function useMedications() {
   async function checkInteractions(meds) {
     if (meds.length < 2) return setInteractions([])
 
-    const names = meds.map(m => m.generic_name)
+    const names = meds.map(m => m.generic_name).filter(Boolean)
     const found = []
 
-    // Check all pairs
     for (let i = 0; i < names.length; i++) {
       for (let j = i + 1; j < names.length; j++) {
+        // بنستخدم الـ function اللي عملناها في Supabase
+        // بتبحث بـ ilike علشان تتعرف على الأسماء بغض النظر عن الحروف
         const { data } = await supabase
-          .from('drug_interactions')
-          .select('*')
-          .or(
-            `and(drug1_name.eq.${names[i]},drug2_name.eq.${names[j]}),and(drug1_name.eq.${names[j]},drug2_name.eq.${names[i]})`
-          )
+          .rpc('check_drug_interaction', {
+            drug_a: names[i],
+            drug_b: names[j]
+          })
         if (data?.length > 0) found.push(...data)
       }
     }
