@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useMedications } from ‘../hooks/useMedications’
+import { useMedications } from '../hooks/useMedications'
 import { Card, Badge, EmptyState, LoadingSpinner, PageHeader } from ‘../components/UI’
 
 export function MedicationsPage() {
