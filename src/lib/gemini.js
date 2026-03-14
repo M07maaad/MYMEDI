@@ -1,4 +1,4 @@
-// - OpenRouter API — بديل Gemini مجاني -
+// - OpenRouter API – بديل Gemini مجاني -
 // الموديل: google/gemini-2.0-flash-exp:free
 // مجاني 100% على openrouter.ai
 
@@ -55,7 +55,7 @@ image_url: { url: `data:${mimeType};base64,${imageBase64}` }
 }], 600)
 
 try { return parseJSON(text) }
-catch { throw new Error(‘تعذر قراءة الصورة — تأكد إن الصورة واضحة’) }
+catch { throw new Error(‘تعذر قراءة الصورة – تأكد إن الصورة واضحة’) }
 }
 
 // - اقتراح مواعيد الدواء -
