@@ -1,53 +1,3 @@
-// ─── MedicationsPage ──────────────────────────────────────────
-import { useNavigate } from ‘react-router-dom’
-import { useMedications } from ‘../hooks/useMedications’
-import { Card, Badge, EmptyState, LoadingSpinner, PageHeader } from ‘../components/UI’
-
-export function MedicationsPage() {
-const navigate = useNavigate()
-const { medications, interactions, deleteMedication, loading } = useMedications()
-if (loading) return <div style={pageStyle}><LoadingSpinner /></div>
-
-return (
-<div style={pageStyle}>
-<PageHeader title=“أدويتي 💊” subtitle={`${medications.length} دواء نشط`}
-action={<button onClick={() => navigate(’/medications/add’)} style={addBtnStyle}>+ إضافة</button>} />
-{medications.length === 0 ? (
-<EmptyState icon=“💊” title=“لا يوجد أدوية” subtitle=“ابدأ بإضافة أدويتك الآن”
-action={<button onClick={() => navigate(’/medications/add’)} style={addBtnStyle}>إضافة دواء</button>} />
-) : medications.map(med => {
-const hasInteraction = interactions.some(i => i.drug1_name === med.generic_name || i.drug2_name === med.generic_name)
-return (
-<Card key={med.id} glow={med.color} style={{ marginBottom: 14 }}>
-<div style={{ display: ‘flex’, gap: 14, alignItems: ‘flex-start’ }}>
-<div style={{ width: 36, height: 36, borderRadius: ‘50%’, background: `${med.color}25`, border: `2px solid ${med.color}60`, display: ‘flex’, alignItems: ‘center’, justifyContent: ‘center’, fontSize: 18, flexShrink: 0 }}>💊</div>
-<div style={{ flex: 1 }}>
-<div style={{ display: ‘flex’, justifyContent: ‘space-between’, alignItems: ‘flex-start’, marginBottom: 6 }}>
-<div>
-<div style={{ color: ‘#F0F4FF’, fontWeight: 800, fontSize: 16 }}>{med.trade_name || med.generic_name}</div>
-<div style={{ color: ‘#6B7A99’, fontSize: 12 }}>{med.generic_name}{med.dose && med.dose !== ‘-’ ? ` — ${med.dose}` : ‘’}</div>
-</div>
-{hasInteraction && <Badge label="⚠️ تفاعل" color="#FF6B6B" />}
-</div>
-<div style={{ display: ‘flex’, gap: 8, flexWrap: ‘wrap’, alignItems: ‘center’ }}>
-{med.dose_times.map(t => <Badge key={t} label={t} color={med.color} />)}
-{med.stock_count > 0 && (
-<span style={{ marginRight: ‘auto’, color: med.stock_count <= 7 ? ‘#FBBF24’ : ‘#6B7A99’, fontSize: 12 }}>📦 {med.stock_count} متبقية</span>
-)}
-</div>
-</div>
-</div>
-</Card>
-)
-})}
-</div>
-)
-}
-
-// ─── SchedulePage ─────────────────────────────────────────────
-import { useState, useEffect } from ‘react’
-import { useMedications as useMeds2 } from ‘../hooks/useMedications’
-
 export function SchedulePage() {
 const { medications, logDose, fetchDoseLogsToday } = useMeds2()
 const [doseLogs, setDoseLogs] = useState([])
@@ -106,7 +56,7 @@ return (
 )
 }
 
-// ─── InteractionsPage ─────────────────────────────────────────
+// - InteractionsPage -
 import { useMedications as useMeds3 } from ‘../hooks/useMedications’
 import { Card as C2, Badge as B2 } from ‘../components/UI’
 
@@ -166,7 +116,7 @@ return (
 )
 }
 
-// ─── LabsPage — تحاليل + أشعة ────────────────────────────────
+// - LabsPage — تحاليل + أشعة -
 import { useRef as useRef2, useState as useState2 } from ‘react’
 import { useLabResults } from ‘../hooks/useLabResults’
 import { fileToBase64 } from ‘../lib/gemini’
@@ -427,7 +377,7 @@ return (
 )
 }
 
-// ─── ProfilePage — مع QR + أمراض مزمنة ──────────────────────
+// - ProfilePage — مع QR + أمراض مزمنة -
 import { useAuth } from ‘../hooks/useAuth’
 import { useMedications as useMeds4 } from ‘../hooks/useMedications’
 import { supabase } from ‘../lib/supabase’
@@ -687,7 +637,7 @@ return (
 )
 }
 
-// ─── OnboardingPage ───────────────────────────────────────────
+// - OnboardingPage -
 import { useState as useState4 } from ‘react’
 import { useNavigate as useNav4 } from ‘react-router-dom’
 
@@ -721,6 +671,6 @@ style={{ width: ‘100%’, background: ‘linear-gradient(135deg, #10D9A0, #0EA
 )
 }
 
-// ─── Shared ───────────────────────────────────────────────────
+// - Shared -
 const pageStyle  = { padding: ‘24px 20px 100px’, direction: ‘rtl’, fontFamily: ‘Cairo, sans-serif’, minHeight: ‘100vh’, background: ‘#070B14’ }
 const addBtnStyle = { background: ‘#10D9A0’, border: ‘none’, borderRadius: 12, padding: ‘10px 18px’, color: ‘#000’, fontWeight: 800, fontSize: 14, cursor: ‘pointer’, fontFamily: ‘Cairo, sans-serif’ }
