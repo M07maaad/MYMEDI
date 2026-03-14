@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
-export function useMedications() {
+// Global context - fetch once, use everywhere
+const MedicationsContext = createContext(null)
+
+export function MedicationsProvider({ children }) {
   const { user } = useAuth()
-  const [medications, setMedications] = useState([])
+  const [medications,  setMedications]  = useState([])
   const [interactions, setInteractions] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading,      setLoading]      = useState(true)
 
   useEffect(() => {
-    if (user) {
-      fetchMedications()
-    }
+    if (user) fetchMedications()
+    else { setMedications([]); setInteractions([]); setLoading(false) }
   }, [user])
 
   async function fetchMedications() {
@@ -22,7 +24,6 @@ export function useMedications() {
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
-
     if (!error && data) {
       setMedications(data)
       await checkInteractions(data)
@@ -32,16 +33,8 @@ export function useMedications() {
 
   async function checkInteractions(meds) {
     if (meds.length < 2) return setInteractions([])
-
-    // نجمع كل أسماء الأدوية في array واحدة - call واحد بدل calls كتير
-    const allNames = meds.flatMap(m => [
-      m.generic_name || '',
-      m.trade_name   || '',
-    ]).filter(Boolean)
-
-    const { data } = await supabase
-      .rpc('check_interactions_bulk', { drug_names: allNames })
-
+    const allNames = meds.flatMap(m => [m.generic_name || '', m.trade_name || '']).filter(Boolean)
+    const { data } = await supabase.rpc('check_interactions_bulk', { drug_names: allNames })
     setInteractions(data || [])
   }
 
@@ -52,8 +45,9 @@ export function useMedications() {
       .select()
       .single()
     if (error) throw error
-    setMedications(prev => [data, ...prev])
-    await checkInteractions([...medications, data])
+    const updated = [data, ...medications]
+    setMedications(updated)
+    await checkInteractions(updated)
     return data
   }
 
@@ -69,15 +63,14 @@ export function useMedications() {
     const { error } = await supabase
       .from('dose_logs')
       .upsert({
-        medication_id: medicationId,
-        user_id: user.id,
+        medication_id:  medicationId,
+        user_id:        user.id,
         scheduled_time: scheduledTime,
-        was_taken: wasTaken,
-        taken_at: wasTaken ? new Date().toISOString() : null,
-        date: today,
+        was_taken:      wasTaken,
+        taken_at:       wasTaken ? new Date().toISOString() : null,
+        date:           today,
       }, { onConflict: 'medication_id,scheduled_time,date' })
     if (error) throw error
-    await fetchDoseLogsToday()
   }
 
   async function fetchDoseLogsToday() {
@@ -91,24 +84,20 @@ export function useMedications() {
   }
 
   async function updateStock(medicationId, newStock) {
-    await supabase
-      .from('medications')
-      .update({ stock_count: newStock })
-      .eq('id', medicationId)
-    setMedications(prev =>
-      prev.map(m => m.id === medicationId ? { ...m, stock_count: newStock } : m)
-    )
+    await supabase.from('medications').update({ stock_count: newStock }).eq('id', medicationId)
+    setMedications(prev => prev.map(m => m.id === medicationId ? { ...m, stock_count: newStock } : m))
   }
 
-  return {
-    medications,
-    interactions,
-    loading,
-    addMedication,
-    deleteMedication,
-    logDose,
-    fetchDoseLogsToday,
-    updateStock,
-    refetch: fetchMedications,
-  }
+  return (
+    <MedicationsContext.Provider value={{
+      medications, interactions, loading,
+      addMedication, deleteMedication,
+      logDose, fetchDoseLogsToday, updateStock,
+      refetch: fetchMedications,
+    }}>
+      {children}
+    </MedicationsContext.Provider>
+  )
 }
+
+export const useMedications = () => useContext(MedicationsContext)
