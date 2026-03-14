@@ -98,8 +98,7 @@ ${medicalData.m.length > 0 ? `
     `MediGuard - ${medicalData.d}`,
   ].filter(Boolean).join('\n')
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shortSummary)}&bgcolor=ffffff&color=000000`
-
+const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(shortSummary)
   return (
     <div style={{ textAlign: 'center' }}>
       {/* QR Image */}
