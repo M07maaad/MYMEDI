@@ -16,111 +16,129 @@ const S = {
 // - QR Code generator بدون library -
 // بيستخدم Google Charts API علشان يعمل QR حقيقي
 function QRDisplay({ profile, medications, conditions }) {
-  const lines = [
-    'MediGuard ' + (profile?.full_name || ''),
-    profile?.age        ? 'Age ' + profile.age         : '',
-    profile?.blood_type ? 'Blood ' + profile.blood_type : '',
-    profile?.weight     ? profile.weight + 'kg'         : '',
-    conditions.map(c => c.name).join(', '),
-    medications.slice(0, 5).map(m => m.trade_name || m.generic_name).join(', '),
-  ].filter(Boolean)
+  // بنبني URL فيه الملف الطبي كامل
+  const medicalData = {
+    n:  profile?.full_name  || '',
+    a:  profile?.age        || '',
+    b:  profile?.blood_type || '',
+    w:  profile?.weight     || '',
+    h:  profile?.height     || '',
+    c:  conditions.map(c => c.name),
+    m:  medications.slice(0, 10).map(m => `${m.trade_name || m.generic_name}${m.dose && m.dose !== '-' ? ' ' + m.dose : ''}`),
+    d:  new Date().toLocaleDateString('ar-EG'),
+  }
 
-  const qrText = lines.join(' | ')
-  const qrUrl  = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(qrText)
+  // بنعمل صفحة HTML بسيطة تظهر الملف الطبي
+  const htmlContent = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملف ${medicalData.n} الطبي -- MediGuard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #070B14; color: #F0F4FF; padding: 20px; direction: rtl; }
+  .header { text-align: center; padding: 32px 20px; background: linear-gradient(135deg,rgba(16,217,160,0.15),rgba(14,165,233,0.15)); border-radius: 20px; margin-bottom: 20px; border: 1px solid rgba(16,217,160,0.3); }
+  .logo { font-size: 40px; margin-bottom: 8px; }
+  .name { font-size: 26px; font-weight: 800; color: #10D9A0; margin-bottom: 4px; }
+  .date { font-size: 13px; color: #6B7A99; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat { background: #111827; border-radius: 12px; padding: 14px 8px; text-align: center; border: 1px solid rgba(255,255,255,0.07); }
+  .stat-val { font-size: 20px; font-weight: 800; color: #10D9A0; }
+  .stat-lbl { font-size: 11px; color: #6B7A99; margin-top: 2px; }
+  .section { background: #111827; border-radius: 14px; padding: 18px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.07); }
+  .section-title { font-size: 15px; font-weight: 700; color: #9BA8BF; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin: 4px; }
+  .tag-med { background: rgba(16,217,160,0.12); color: #10D9A0; border: 1px solid rgba(16,217,160,0.2); }
+  .tag-cond { background: rgba(248,113,113,0.12); color: #FCA5A5; border: 1px solid rgba(248,113,113,0.2); }
+  .footer { text-align: center; padding: 20px; color: #4B5563; font-size: 12px; }
+  .blood { background: rgba(255,107,107,0.15); color: #FF6B6B; border-radius: 8px; padding: 4px 12px; font-weight: 800; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">🏥</div>
+  <div class="name">${medicalData.n}</div>
+  <div class="date">آخر تحديث: ${medicalData.d}</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="stat-val">${medicalData.a || '--'}</div><div class="stat-lbl">العمر</div></div>
+  <div class="stat"><div class="stat-val">${medicalData.w || '--'}</div><div class="stat-lbl">الوزن كجم</div></div>
+  <div class="stat"><div class="stat-val">${medicalData.h || '--'}</div><div class="stat-lbl">الطول سم</div></div>
+  <div class="stat"><div class="stat-val"><span class="blood">${medicalData.b || '--'}</span></div><div class="stat-lbl">فصيلة الدم</div></div>
+</div>
+${medicalData.c.length > 0 ? `
+<div class="section">
+  <div class="section-title">🏥 الأمراض المزمنة والسابقة</div>
+  ${medicalData.c.map(c => `<span class="tag tag-cond">${c}</span>`).join('')}
+</div>` : ''}
+${medicalData.m.length > 0 ? `
+<div class="section">
+  <div class="section-title">💊 الأدوية الحالية (${medicalData.m.length})</div>
+  ${medicalData.m.map(m => `<span class="tag tag-med">${m}</span>`).join('')}
+</div>` : ''}
+<div class="footer">تم إنشاؤه بواسطة MediGuard · للاستخدام الطبي فقط</div>
+</body>
+</html>`
 
-  const meds = medications.slice(0, 10).map(m => {
-    const name = m.trade_name || m.generic_name
-    const dose = m.dose && m.dose !== '-' ? ' ' + m.dose : ''
-    return name + dose
-  })
+  // نحول HTML لـ data URL
+  const encoded = encodeURIComponent(htmlContent)
+  const dataUrl  = `data:text/html;charset=utf-8,${encoded}`
 
-  const htmlContent = [
-    '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">',
-    '<meta name="viewport" content="width=device-width,initial-scale=1">',
-    '<title>ملف ' + (profile?.full_name || '') + ' الطبي</title>',
-    '<style>',
-    '* { margin:0; padding:0; box-sizing:border-box; }',
-    'body { font-family: Arial,sans-serif; background:#070B14; color:#F0F4FF; padding:20px; direction:rtl; }',
-    '.header { text-align:center; padding:28px; background:rgba(16,217,160,0.1); border-radius:16px; margin-bottom:16px; border:1px solid rgba(16,217,160,0.3); }',
-    '.name { font-size:24px; font-weight:800; color:#10D9A0; }',
-    '.date { font-size:12px; color:#6B7A99; margin-top:4px; }',
-    '.stats { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:16px; }',
-    '.stat { background:#111827; border-radius:10px; padding:12px 6px; text-align:center; border:1px solid rgba(255,255,255,0.07); }',
-    '.val { font-size:18px; font-weight:800; color:#10D9A0; }',
-    '.lbl { font-size:10px; color:#6B7A99; margin-top:2px; }',
-    '.blood { color:#FF6B6B !important; }',
-    '.section { background:#111827; border-radius:12px; padding:16px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.07); }',
-    '.sec-title { font-size:14px; font-weight:700; color:#9BA8BF; margin-bottom:10px; }',
-    '.tag { display:inline-block; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; margin:3px; }',
-    '.med { background:rgba(16,217,160,0.12); color:#10D9A0; border:1px solid rgba(16,217,160,0.2); }',
-    '.cond { background:rgba(248,113,113,0.12); color:#FCA5A5; border:1px solid rgba(248,113,113,0.2); }',
-    '.footer { text-align:center; padding:16px; color:#4B5563; font-size:11px; }',
-    '</style></head><body>',
-    '<div class="header">',
-    '<div style="font-size:36px;margin-bottom:8px">🏥</div>',
-    '<div class="name">' + (profile?.full_name || '') + '</div>',
-    '<div class="date">MediGuard · ' + new Date().toLocaleDateString('ar-EG') + '</div>',
-    '</div>',
-    '<div class="stats">',
-    '<div class="stat"><div class="val">' + (profile?.age || '--') + '</div><div class="lbl">العمر</div></div>',
-    '<div class="stat"><div class="val">' + (profile?.weight || '--') + '</div><div class="lbl">كجم</div></div>',
-    '<div class="stat"><div class="val">' + (profile?.height || '--') + '</div><div class="lbl">سم</div></div>',
-    '<div class="stat"><div class="val blood">' + (profile?.blood_type || '--') + '</div><div class="lbl">الفصيلة</div></div>',
-    '</div>',
-  ].join('')
+  // QR Code بيفتح الـ data URL دي
+  // بنستخدم QR Server API مجاني
+  const qrText   = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent).slice(0, 500)}`
+  // بما إن الـ data URL طويلة جداً للـ QR، هنعمل صفحة ملخص بسيطة
+  const shortSummary = [
+    `👤 ${medicalData.n}`,
+    medicalData.a ? `العمر: ${medicalData.a}` : '',
+    medicalData.b ? `فصيلة: ${medicalData.b}` : '',
+    medicalData.c.length ? `أمراض: ${medicalData.c.join('، ')}` : '',
+    medicalData.m.length ? `أدوية: ${medicalData.m.slice(0,5).join('، ')}` : '',
+    `MediGuard - ${medicalData.d}`,
+  ].filter(Boolean).join('\n')
 
-  const condHtml = conditions.length > 0
-    ? '<div class="section"><div class="sec-title">🏥 الأمراض المزمنة</div>'
-      + conditions.map(c => '<span class="tag cond">' + c.name + '</span>').join('')
-      + '</div>'
-    : ''
-
-  const medHtml = meds.length > 0
-    ? '<div class="section"><div class="sec-title">💊 الأدوية (' + meds.length + ')</div>'
-      + meds.map(m => '<span class="tag med">' + m + '</span>').join('')
-      + '</div>'
-    : ''
-
-  const fullHtml = htmlContent + condHtml + medHtml
-    + '<div class="footer">تم إنشاؤه بواسطة MediGuard · للاستخدام الطبي فقط</div>'
-    + '</body></html>'
+  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(shortSummary)
 
   return (
     <div style={{ textAlign: 'center' }}>
+      {/* QR Image */}
       <div style={{ background: '#fff', borderRadius: 16, padding: 16, display: 'inline-block', marginBottom: 16 }}>
-        <img src={qrUrl} alt="QR" width={200} height={200} style={{ display: 'block' }}
+        <img src={qrUrl} alt="QR Code" width={200} height={200}
+          style={{ display: 'block', borderRadius: 8 }}
           onError={e => { e.target.style.display = 'none' }} />
       </div>
 
+      {/* Medical Summary Card */}
       <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 14, padding: 18, textAlign: 'right', marginBottom: 16 }}>
         <div style={{ color: '#A78BFA', fontWeight: 700, fontSize: 14, marginBottom: 12 }}>📋 ملخص الملف الطبي</div>
         <div style={{ lineHeight: 2.2, fontSize: 14 }}>
-          <div style={{ color: '#F0F4FF' }}>👤 {profile?.full_name}{profile?.age ? ' · ' + profile.age + ' سنة' : ''}</div>
+          <div style={{ color: '#F0F4FF' }}>👤 {profile?.full_name} {profile?.age && `· ${profile.age} سنة`}</div>
           {profile?.blood_type && <div style={{ color: '#FF6B6B' }}>🩸 فصيلة الدم: <strong>{profile.blood_type}</strong></div>}
           {(profile?.weight || profile?.height) && (
-            <div style={{ color: '#9BA8BF' }}>⚖️ {profile?.weight ? profile.weight + ' كجم' : ''}{profile?.height ? ' · ' + profile.height + ' سم' : ''}</div>
+            <div style={{ color: '#9BA8BF' }}>⚖️ {profile?.weight && `${profile.weight} كجم`} {profile?.height && `· ${profile.height} سم`}</div>
           )}
           {conditions.length > 0 && (
             <div style={{ color: '#FCA5A5' }}>🏥 {conditions.map(c => c.name).join('، ')}</div>
           )}
           {medications.length > 0 && (
-            <div style={{ color: '#10D9A0' }}>💊 {medications.slice(0,5).map(m => m.trade_name || m.generic_name).join('، ')}{medications.length > 5 ? ' +' + (medications.length - 5) : ''}</div>
+            <div style={{ color: '#10D9A0' }}>💊 {medications.slice(0,5).map(m => m.trade_name || m.generic_name).join('، ')}{medications.length > 5 && ` +${medications.length-5}`}</div>
           )}
         </div>
       </div>
 
+      {/* View Full Profile Button */}
       <button onClick={() => {
-        const blob = new Blob([fullHtml], { type: 'text/html' })
+        const blob = new Blob([htmlContent], { type: 'text/html' })
         const url  = URL.createObjectURL(blob)
         window.open(url, '_blank')
       }} style={{ width: '100%', background: 'linear-gradient(135deg, #10D9A0, #0EA5E9)', border: 'none', borderRadius: 14, padding: '14px 0', color: '#000', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'Cairo, sans-serif', marginBottom: 8 }}>
         🔗 عرض الملف الطبي كامل
       </button>
-      <div style={{ color: '#6B7A99', fontSize: 12 }}>اعرض الـ QR للدكتور أو اضغط عرض الملف كامل</div>
+      <div style={{ color: '#4B5563', fontSize: 12, textAlign: 'center' }}>اعرض الـ QR للدكتور أو اضغط عرض الملف كامل</div>
     </div>
   )
 }
-
 
 // - ProfilePage -
 export default function ProfilePage() {
