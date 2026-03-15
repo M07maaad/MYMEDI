@@ -82,21 +82,13 @@ ${medicalData.m.length > 0 ? `
 </html>`
 
   // نحول HTML لـ data URL
-  const encoded = encodeURIComponent(htmlContent)
-  const dataUrl  = `data:text/html;charset=utf-8,${encoded}`
-
-  // QR Code بيفتح الـ data URL دي
-  // بنستخدم QR Server API مجاني
-  const qrText   = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent).slice(0, 500)}`
-  // بما إن الـ data URL طويلة جداً للـ QR، هنعمل صفحة ملخص بسيطة
   const qrText = [
-    'MediGuard',
-    medicalData.n,
+    'MediGuard', medicalData.n,
     medicalData.b ? 'Blood:' + medicalData.b : '',
     medicalData.a ? 'Age:' + medicalData.a : '',
   ].filter(Boolean).join(' ')
 
-  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(qrText) + '&choe=UTF-8'
+  const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' + encodeURIComponent(qrText)
 
   return (
     <div style={{ textAlign: 'center' }}>
